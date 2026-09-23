@@ -1,0 +1,17 @@
+#!/usr/bin/env zsh
+# leo: TODO — one-line description of `leo {{.Name}}` (shown in `leo help`)
+#
+# Invoked as: leo {{.Name}} [args...]   (this file is `leo-{{.Name}}`)
+# leo injects: $LEO_BIN $LEO_STORE $LEO_CONFIG $LEO_COMMAND_PATHS
+set -euo pipefail
+leo="${LEO_BIN:-leo}"          # call back into leo
+
+case "${1:-}" in
+  -h|--help) echo "Usage: leo {{.Name}} [args...]"; exit 0 ;;
+esac
+
+# Example: use the object store
+#   "$leo" store set {{.Name}}.last "$*"
+#   "$leo" store get {{.Name}}.last
+
+echo "leo {{.Name}}: $*"
