@@ -23,7 +23,9 @@ func Execute(version string) {
 		os.Exit(1)
 	}
 	if err := root.Execute(); err != nil {
-		// cobra already printed the error/usage; exit non-zero.
+		// SilenceErrors is set on the root, so print our own clean message
+		// (no cobra "Error:" prefix, no usage dump) and exit non-zero.
+		fmt.Fprintln(os.Stderr, "leo:", err)
 		os.Exit(1)
 	}
 }

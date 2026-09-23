@@ -147,3 +147,33 @@ func TestRankKeysOrdering(t *testing.T) {
 		t.Errorf("RankKeys(\"\") returned %d keys, want 5", len(got))
 	}
 }
+
+func TestKind(t *testing.T) {
+	cases := map[string]string{
+		`{}`:        "object",
+		`[]`:        "array",
+		`"hi"`:      "string",
+		`42`:        "number",
+		`-1.5`:      "number",
+		`true`:      "boolean",
+		`false`:     "boolean",
+		`null`:      "null",
+		``:          "null",
+		`  {"a":1}`: "object",
+	}
+	for raw, want := range cases {
+		if got := Kind(json.RawMessage(raw)); got != want {
+			t.Errorf("Kind(%q) = %q, want %q", raw, got, want)
+		}
+	}
+}
+
+func TestUnquoteString(t *testing.T) {
+	if got := UnquoteString(json.RawMessage(`"hello"`)); got != "hello" {
+		t.Errorf("UnquoteString of a string = %q", got)
+	}
+	// Non-string values come back as their raw text.
+	if got := UnquoteString(json.RawMessage(`42`)); got != "42" {
+		t.Errorf("UnquoteString of a number = %q", got)
+	}
+}

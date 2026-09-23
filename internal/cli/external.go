@@ -54,7 +54,7 @@ func registerExternals(root *cobra.Command, cfg *config.Config) {
 			GroupID:            groupID,
 			DisableFlagParsing: true,
 			RunE: func(cmd *cobra.Command, args []string) error {
-				return runExternal(file, args, cfg)
+				return runExternal(cmd, file, args, cfg)
 			},
 		})
 	}
@@ -131,13 +131,13 @@ func markerShort(file string) string {
 
 // runExternal execs an external subcommand file with args, injecting leo's
 // environment. The file is invoked directly via an argument array (no shell),
-// so arguments are never re-parsed by a shell. The child's exit code is
-// propagated.
-func runExternal(file string, args []string, cfg *config.Config) error {
+// so arguments are never re-parsed by a shell. The child inherits the command's
+// stdio (the real terminal in normal use) and its exit code is propagated.
+func runExternal(cmd *cobra.Command, file string, args []string, cfg *config.Config) error {
 	c := exec.Command(file, args...)
-	c.Stdin = os.Stdin
-	c.Stdout = os.Stdout
-	c.Stderr = os.Stderr
+	c.Stdin = cmd.InOrStdin()
+	c.Stdout = cmd.OutOrStdout()
+	c.Stderr = cmd.ErrOrStderr()
 	c.Env = childEnv(cfg)
 
 	if err := c.Run(); err != nil {

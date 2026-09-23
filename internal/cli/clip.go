@@ -35,15 +35,28 @@ func newClipCmd(cfg *config.Config) *cobra.Command {
 				return err
 			}
 
-			// Resolve each argument: store key first (its value), else literal.
+			// Resolve each argument: store key first (its value), then an
+			// existing file path. Anything else is unresolved.
 			texts := make([]string, len(args))
 			allFiles := true
+			var missing []string
 			for i, arg := range args {
-				text, fileCandidate := resolveClipArg(st, arg, prettyOut)
+				text, isFile, ok := resolveClipArg(st, arg, prettyOut)
 				texts[i] = text
-				if !fileCandidate {
+				if !isFile {
 					allFiles = false
 				}
+				if !ok {
+					missing = append(missing, arg)
+				}
+			}
+
+			// A bare argument that is neither a store key nor a file on disk is
+			// almost certainly a mistyped key. Copy nothing and say so, instead
+			// of silently copying the literal text. --text and --file are the
+			// explicit opt-ins (literal text, or a path CopyFiles validates).
+			if len(missing) > 0 && !forceText && !forceFile {
+				return notInStore(missing)
 			}
 
 			fileMode := forceFile || (!forceText && allFiles)
@@ -67,22 +80,40 @@ func newClipCmd(cfg *config.Config) *cobra.Command {
 	return cmd
 }
 
-// resolveClipArg resolves a clip argument to its text form and reports whether
-// that text names an existing file (a file-object candidate). A store key
-// resolves to its value: strings become their unquoted text; other JSON values
-// become JSON text (compact, or pretty when requested).
-func resolveClipArg(st *store.Store, arg string, prettyOut bool) (text string, fileCandidate bool) {
+// resolveClipArg resolves a clip argument to its text form. isFile reports
+// whether that text names an existing file (a file-object candidate); resolved
+// reports whether the argument matched anything at all (a store key or an
+// existing file). A store key resolves to its value: strings become their
+// unquoted text; other JSON values become JSON text (compact, or pretty when
+// requested). An argument that is neither a key nor a file is unresolved.
+func resolveClipArg(st *store.Store, arg string, prettyOut bool) (text string, isFile, resolved bool) {
 	if val, ok := st.Get(arg); ok {
 		if store.Kind(val) == "string" {
 			s := store.UnquoteString(val)
-			return s, isExistingFile(s)
+			return s, isExistingFile(s), true
 		}
 		if prettyOut {
-			return pretty(val), false
+			return pretty(val), false, true
 		}
-		return compact(val), false
+		return compact(val), false, true
 	}
-	return arg, isExistingFile(arg)
+	if isExistingFile(arg) {
+		return arg, true, true
+	}
+	return arg, false, false
+}
+
+// notInStore builds the friendly error shown when clip arguments match neither
+// a store key nor a file on disk.
+func notInStore(missing []string) error {
+	if len(missing) == 1 {
+		return fmt.Errorf("hmm, there's no %q in your store, so there's nothing to copy", missing[0])
+	}
+	quoted := make([]string, len(missing))
+	for i, m := range missing {
+		quoted[i] = fmt.Sprintf("%q", m)
+	}
+	return fmt.Errorf("hmm, none of these are in your store: %s (nothing copied)", strings.Join(quoted, ", "))
 }
 
 // isExistingFile reports whether p (after ~ expansion / abs resolution) is an
