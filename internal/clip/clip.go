@@ -55,7 +55,7 @@ func CopyFiles(paths []string) error {
 		}
 		abs = append(abs, ap)
 	}
-	// osascript -l JavaScript -e <script> <path>...  → paths become run()'s argv.
+	// osascript -l JavaScript -e <script> <path>...  paths become run()'s argv.
 	args := append([]string{"-l", "JavaScript", "-e", jxaFileURLScript}, abs...)
 	cmd := exec.Command("osascript", args...)
 	if out, err := cmd.CombinedOutput(); err != nil {

@@ -3,7 +3,7 @@ package main
 
 import "leo/internal/cli"
 
-// version is injected at build time via -ldflags "-X main.version=…".
+// version is injected at build time via -ldflags "-X main.version=...".
 var version = "dev"
 
 func main() {

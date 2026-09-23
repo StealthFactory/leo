@@ -300,7 +300,7 @@ func preview(raw json.RawMessage) string {
 	s := compact(raw)
 	const max = 80
 	if len(s) > max {
-		return s[:max-1] + "…"
+		return s[:max-3] + "..."
 	}
 	return s
 }

@@ -159,7 +159,7 @@ func Kind(raw json.RawMessage) string {
 //   - forceJSON:   input must be valid JSON, or an error is returned.
 //   - default:     valid JSON is stored as that type; otherwise a JSON string.
 //
-// URLs, "1.2.3", "07001", "+1555…" fail JSON parsing and stay strings;
+// URLs, "1.2.3", "07001", "+1555..." fail JSON parsing and stay strings;
 // {...}, [...], 42, true, null are typed. Quoting is the escape hatch: the
 // shell-quoted input `"42"` is valid JSON and stays the string "42".
 func DetectValue(input string, forceString, forceJSON bool) (json.RawMessage, error) {

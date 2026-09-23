@@ -1,118 +1,121 @@
-# leo — a helpful assistant
+# Leo 🦁
 
-A small, personal, extensible task-runner CLI. `leo` ships a handful of
-built-in commands and dispatches everything else to **git-style external
-subcommands** (`leo-<name>` scripts in any language) that you can add without
-recompiling. It includes a JSON **object store**, a macOS **clipboard** helper,
-a **scaffolding** command, and lazy-autoloaded shell **completion**.
+Meet Leo, a tiny command-line sidekick you can teach new tricks in seconds.
 
-## Install
+Out of the box Leo gives you a few genuinely useful things: a little JSON store
+to stash whatever you want, a "just copy this to my clipboard" command for the
+Mac, and tab-completion that actually knows your data. But the fun part is that
+anything named `leo-<something>` on your machine instantly becomes
+`leo <something>`. Write a shell script, a Python file, a snippet of
+TypeScript, whatever you like, drop it in, and Leo picks it up. No plugins to
+register, no rebuilds, no ceremony.
 
-### Homebrew
+Think of it as your own personal `git`: a small, stable core with a growing pile
+of subcommands that are entirely yours.
 
-Once accepted into [homebrew-core](https://github.com/Homebrew/homebrew-core):
+## Getting Leo
 
 ```sh
 brew install leo
 ```
 
-### From source
+## Sixty seconds with Leo
 
 ```sh
-brew install go            # if you don't have Go
-git clone https://github.com/StealthFactory/leo && cd leo
-go build -ldflags "-X main.version=$(git describe --tags --always)" -o leo .
-cp leo /usr/local/bin/     # or ~/.local/bin, anywhere on $PATH
-```
-
-## Quick start
-
-```sh
-leo config init                              # write ~/.config/leo/config.toml
-leo store set limits '{"cpu":2,"mem":"4Gi"}' # auto-typed JSON object
+leo config init                              # set up ~/.config/leo
+leo store set limits '{"cpu":2,"mem":"4Gi"}' # stash some JSON
 leo store get limits --query .cpu            # -> 2
-leo generate hello                           # scaffold ~/.config/leo/commands/leo-hello
-leo hello world                              # runs your new subcommand
-leo help                                     # built-ins + your subcommands, grouped
-leo completion install                       # one-time: enable <TAB> completion
+leo generate hello                           # scaffold your first subcommand
+leo hello world                              # ...and run it
+leo help                                     # see everything, yours included
 ```
 
-## Built-in commands
+That's the whole loop: keep some data around, teach Leo a new command, run it.
 
-| Command | What it does |
-| --- | --- |
-| `leo store …` | Object store for arbitrary JSON values (see below). |
-| `leo clip <key-or-path>…` | Copy a store value or file to the macOS clipboard. |
-| `leo generate <name>` | Scaffold a new `leo-<name>` subcommand. |
-| `leo config init\|show\|path` | Initialize / inspect configuration. |
-| `leo completion install` | Install zsh completion into an on-`fpath` dir. |
-| `leo version` | Print the version. |
+## The store
 
-### Object store
+Leo keeps a JSON object store at `~/.config/leo/store.json`, locked down to
+`0600` since you might keep secrets in there, and always written back tidy with
+sorted keys so it diffs nicely.
 
-Values are **arbitrary JSON**, stored at `~/.config/leo/store.json`
-(mode `0600` — values may be secrets), pretty-printed with sorted keys.
+The nice touch: Leo figures out the type for you. Hand it real JSON and it stays
+JSON; hand it anything else and it's a string. No fuss.
 
 ```sh
-leo store set dancegif https://x.gif    # invalid JSON -> string
-leo store set retries 5                  # -> number
-leo store set zip --string 7001          # force string "7001"
-leo store set cfg --file ./cfg.json      # read value from a file
-echo '{"a":1}' | leo store set blob -    # read value from stdin
-leo store get cfg --query '.items[]'     # project with jq (gojq)
-leo store search dep --values            # match keys (and values with --values)
-leo store type cfg                       # object|array|string|number|boolean|null
+leo store set dancegif https://x.gif   # not valid JSON, so it's a string
+leo store set retries 5                 # a number
+leo store set limits '{"cpu":2}'        # an object
+leo store set zip --string 7001         # force a string when you need to
+
+leo store get limits --query .cpu       # slice it up with jq
+leo store search dep                    # find keys fast (--values to search values too)
+leo store type limits                   # object? number? string?
 leo store list
-leo store delete cfg
+leo store delete dancegif
 ```
 
-Values are **auto-typed**: valid JSON (`{…}`, `[…]`, `42`, `true`, `null`)
-keeps its type; anything else (URLs, `1.2.3`, `07001`, phone numbers) stays a
-string. Use `--string`/`--json` to force, and shell quoting as the escape hatch
-(`'"42"'` stores the string `"42"`). Binary/images are stored **by reference**
-(a path or URL string); `leo` never copies bytes.
+A few conveniences worth knowing: read a value straight from a file with
+`--file ./thing.json`, or from a pipe with a trailing `-`
+(`echo '{"a":1}' | leo store set blob -`). And if you ever need the literal
+string `"42"` instead of the number, quoting is your escape hatch: `'"42"'`.
 
-### Clipboard (macOS)
+Big files and images don't belong in a JSON blob, so Leo doesn't try. Just
+store the path or URL and let the file live where it is.
 
-`leo clip` is a universal "copy this". Each argument resolves as a **store key
-first**, otherwise as a literal:
+## Copying things (macOS)
 
-- A string that names an **existing file** → copied as a **file object**
-  (`public.file-url`), so Cmd+V pastes the actual file.
-- Anything else → text; JSON objects/arrays are copied as JSON text
-  (`--pretty` to indent). `--file`/`--text` force a mode.
+`leo clip` is the "copy this, you know what I mean" command. Give it a store key
+or a path, and it does the sensible thing:
 
-## Writing a subcommand
+```sh
+leo clip logo        # if that's a real file, Cmd+V pastes the actual file
+leo clip limits      # otherwise you get text, and JSON comes across as JSON
+```
 
-Any executable named `leo-<name>` inside a configured command-path set becomes
-`leo <name>`. Scaffold one with `leo generate` (languages: `bash`, `zsh`,
-`python`, `node`, `typescript`; aliases `sh`/`py`/`js`/`ts`):
+Point it at an existing file and you get a proper file object on the clipboard,
+the same thing Finder puts there with Cmd+C. Point it at anything else and you
+get text. `--pretty` indents JSON, and `--file` or `--text` let you insist on a
+mode when you want to.
+
+## Teaching Leo new commands
+
+This is where Leo earns its keep. Any executable called `leo-<name>` living in
+one of your command directories becomes `leo <name>` automatically, showing up
+in `leo help`, in tab-completion, everywhere.
+
+You can write these by hand, but `leo generate` gets you started with a working
+template in the language of your choice (bash, zsh, python, node, or typescript,
+with `sh`/`py`/`js`/`ts` as shorthand):
 
 ```sh
 leo generate deploy --lang python --set work
 ```
 
-`leo` injects this environment when it runs your script:
+When Leo runs your script, it hands you a little environment so your subcommand
+can lean on the rest of Leo:
 
-| Variable | Meaning |
-| --- | --- |
-| `LEO_BIN` | Path to the `leo` binary (its dir is prepended to `$PATH`). |
-| `LEO_STORE` | Resolved `store.json` path. |
-| `LEO_CONFIG` | Resolved `config.toml` path. |
-| `LEO_COMMAND_PATHS` | Colon-separated command-path set dirs. |
+- `LEO_BIN` is the path to Leo itself, so you can call back into it.
+- `LEO_STORE` is where the store lives.
+- `LEO_CONFIG` is where the config lives.
+- `LEO_COMMAND_PATHS` lists your command directories.
 
-Line 2 of the script is a **marker comment** (`# leo:` or `// leo:`) whose text
-becomes the one-line description shown in `leo help`. Scripts pass their own
-flags straight through (leo does not parse them), and call back into leo via
-`"$LEO_BIN" store get …`.
+The second line of a generated script is a little `# leo:` (or `// leo:`) note.
+Whatever you write there shows up as the one-line description in `leo help`, so
+future-you knows what the command does. Your script gets its arguments
+untouched, and calling back in is as easy as `"$LEO_BIN" store get something`.
 
-## Configuration (`~/.config/leo/config.toml`)
+## Where your commands live
+
+Leo looks for subcommands in one or more named directories, in order. By default
+that's just `~/.config/leo/commands`, but you can keep, say, work and personal
+commands apart:
 
 ```toml
+# ~/.config/leo/config.toml
 store_path = "~/.config/leo/store.json"
-gen_lang   = "bash"                       # default `leo generate` language
+gen_lang   = "bash"          # your favorite language for `leo generate`
 
-[[command_path]]                          # searched in order; earlier wins
+[[command_path]]
 name = "default"
 path = "~/.config/leo/commands"
 
@@ -121,23 +124,27 @@ name = "work"
 path = "~/work/leo-commands"
 ```
 
-- `~` and `$VARS` are expanded on load.
-- `LEO_PATH` (colon-separated dirs) **prepends** extra sets for the current
-  shell (grouped as `[env]` in help).
-- `LEO_CONFIG` points to an alternate config file; `XDG_CONFIG_HOME` moves the
-  base dir.
-- **Built-ins always win** over external subcommands of the same name; earlier
-  sets win over later ones.
+`~` and environment variables get expanded for you. Need an extra directory just
+for this shell? Set `LEO_PATH` and Leo folds it in (it shows up under `[env]` in
+help). When two commands share a name the earlier one wins, and Leo's own
+built-ins always come first, so nothing you drop in can shadow them by accident.
 
-## Completion
+## Tab-completion that gets it
+
+Set it up once:
 
 ```sh
-leo completion install     # writes _leo into a dir already on your $fpath
-exec zsh                   # once, so compinit picks it up
+leo completion install     # tucks _leo into a directory zsh already searches
+exec zsh                   # so it gets picked up
 ```
 
-Then just press `<TAB>`: subcommand names and **store keys** complete, the
-latter ranked **prefix → substring → subsequence** (no shell re-sort, no file
-names mixed in). The `_leo` function is lazily autoloaded — no shell-startup
-cost. `leo completion bash|zsh|fish|powershell` prints the raw script if you
-prefer to wire it up yourself.
+After that, just press `<TAB>`. Command names complete, and so do your store
+keys, ranked the way you'd actually want them: exact prefixes first, then
+substring matches, then loose subsequence matches, with no file names muddled
+in. It loads lazily, so it costs your shell nothing at startup.
+
+Prefer to wire things up yourself? `leo completion bash|zsh|fish|powershell`
+prints the raw script and gets out of your way.
+
+Leo is a personal tool, built to stay small and get out of the way. Add the
+commands you wish your shell had, and make it yours.

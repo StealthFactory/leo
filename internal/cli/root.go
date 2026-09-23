@@ -38,7 +38,7 @@ func NewRoot(version string) (*cobra.Command, error) {
 	root := &cobra.Command{
 		Use:           "leo",
 		Short:         "a helpful assistant",
-		Long:          "leo — a helpful assistant.\n\nA small, extensible task runner: a JSON object store, a macOS clipboard\nhelper, and git-style external subcommands (leo-<name>) you can add without\nrecompiling.",
+		Long:          "Leo, a helpful assistant.\n\nA tiny command-line sidekick with a JSON object store, a macOS clipboard\nhelper, and git-style external subcommands (leo-<name>) you can add without\nrecompiling. No plugins, no rebuilds.",
 		Version:       version,
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -77,7 +77,7 @@ func newVersionCmd(version string) *cobra.Command {
 }
 
 // storeKeyCompletion returns a ValidArgsFunction that completes store keys in
-// leo's prefix→substring→subsequence ranking, with no shell re-sort and no
+// leo's prefix -> substring -> subsequence ranking, with no shell re-sort and no
 // file names mixed in.
 func storeKeyCompletion(cfg *config.Config) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 	return func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {

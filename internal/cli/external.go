@@ -17,8 +17,8 @@ import (
 // extension.
 var knownExts = map[string]bool{
 	".sh": true, ".bash": true, ".zsh": true,
-	".py":  true,
-	".js":  true, ".mjs": true, ".cjs": true,
+	".py": true,
+	".js": true, ".mjs": true, ".cjs": true,
 	".ts": true, ".mts": true, ".cts": true,
 }
 
