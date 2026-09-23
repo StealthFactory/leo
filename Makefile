@@ -78,6 +78,14 @@ clean: ## Remove the built binary and Go build cache artifacts
 version: ## Print the version that would be baked in
 	@echo $(VERSION)
 
+.PHONY: formula-sha
+formula-sha: ## Print a tag's tarball sha256 for the formula, e.g. make formula-sha TAG=v0.2.0
+	@curl -fsSL https://github.com/StealthFactory/leo/archive/refs/tags/$(TAG).tar.gz | shasum -a 256 | awk '{print $$1}'
+
+.PHONY: homebrew-core-readiness-check
+homebrew-core-readiness-check: ## Run every check homebrew-core expects for the leo formula
+	bash scripts/homebrew-core-readiness-check.sh
+
 .PHONY: help
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
