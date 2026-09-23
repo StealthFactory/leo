@@ -29,6 +29,23 @@ func TestExpandTilde(t *testing.T) {
 	}
 }
 
+func TestImageUTI(t *testing.T) {
+	cases := map[string]string{
+		"/x/a.png":  "public.png",
+		"/x/a.PNG":  "public.png",
+		"/x/a.jpg":  "public.jpeg",
+		"/x/a.jpeg": "public.jpeg",
+		"/x/a.gif":  "com.compuserve.gif",
+		"/x/a.txt":  "",
+		"/x/noext":  "",
+	}
+	for p, want := range cases {
+		if got := imageUTI(p); got != want {
+			t.Errorf("imageUTI(%q) = %q, want %q", p, got, want)
+		}
+	}
+}
+
 // TestCopyFilesValidation checks the error paths that never touch the real
 // clipboard (empty input, and a path that does not exist). On non-macOS both
 // return ErrUnsupported, which is still a non-nil error.
