@@ -82,9 +82,9 @@ version: ## Print the version that would be baked in
 formula-sha: ## Print a tag's tarball sha256 for the formula, e.g. make formula-sha TAG=v0.2.0
 	@curl -fsSL https://github.com/StealthFactory/leo/archive/refs/tags/$(TAG).tar.gz | shasum -a 256 | awk '{print $$1}'
 
-.PHONY: homebrew-core-readiness-check
-homebrew-core-readiness-check: ## Run every check homebrew-core expects for the leo formula
-	bash scripts/homebrew-core-readiness-check.sh
+.PHONY: formula-readiness-check
+formula-readiness-check: ## Check the formula is ready to publish to the tap
+	bash scripts/formula-readiness-check.sh
 
 .PHONY: help
 help: ## Show this help

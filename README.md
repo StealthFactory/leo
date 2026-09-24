@@ -16,7 +16,20 @@ of subcommands that are entirely yours.
 ## Getting Leo
 
 ```sh
+brew tap stealthfactory/leo
 brew install leo
+```
+
+Or in one line, without tapping first:
+
+```sh
+brew install stealthfactory/leo/leo
+```
+
+To upgrade later:
+
+```sh
+brew update && brew upgrade leo
 ```
 
 ## Sixty seconds with Leo
@@ -148,9 +161,12 @@ prints the raw script and gets out of your way.
 
 ## Releasing
 
-Leo installs from a tagged release, and the Homebrew formula lives in
-`packaging/Formula/leo.rb`. Cutting a new version and checking the formula goes
-like this (using `vX.Y.Z` for your next version, e.g. `v0.2.3`):
+Leo installs from a tagged release through the Homebrew tap
+[`stealthfactory/homebrew-leo`](https://github.com/StealthFactory/homebrew-leo),
+where the formula lives at `Formula/leo.rb`. Publishing a release means cutting a
+tag and updating that formula in the tap. This assumes the `homebrew-leo`
+checkout sits next to this repo at `../homebrew-leo`. Using `vX.Y.Z` for your
+next version, e.g. `v0.3.3`:
 
 1. Commit whatever you want in the release. Tags capture committed code, not
    your working tree, so anything still uncommitted won't be in it.
@@ -167,20 +183,20 @@ like this (using `vX.Y.Z` for your next version, e.g. `v0.2.3`):
    make formula-sha TAG=vX.Y.Z
    ```
 
-4. Point the formula at the new release: in `packaging/Formula/leo.rb`, set `url`
-   to the `vX.Y.Z` tarball and `sha256` to the value from step 3.
+4. Point the formula at the new release: in `../homebrew-leo/Formula/leo.rb`, set
+   `url` to the `vX.Y.Z` tarball and `sha256` to the value from step 3.
 
-5. Run the readiness check, which validates the formula the way homebrew-core
-   would (Go tests, `brew style`, the tarball and its checksum, `brew audit
-   --new`, a source build, and `brew test`):
+5. Run the readiness check against the tap formula (Go tests, `brew style`, the
+   tarball and its checksum, `brew audit`, a source build, and `brew test`):
    ```sh
-   make homebrew-core-readiness-check
+   make formula-readiness-check
    ```
-   It must end in `PASS`. It stages the formula into a throwaway tap and cleans
+   It must end in `PASS`. It reads `../homebrew-leo/Formula/leo.rb` by default
+   (override with `FORMULA=<path>`), stages it into a throwaway tap, and cleans
    up after itself, so nothing is left installed.
 
-Once it passes, the single file `packaging/Formula/leo.rb` is what you submit to
-homebrew-core. See `packaging/SUBMITTING.md` for the submission steps.
+6. Commit and push the formula change in the `homebrew-leo` checkout.
+   `brew update && brew upgrade leo` then picks up the new version.
 
 Leo is a personal tool, built to stay small and get out of the way. Add the
 commands you wish your shell had, and make it yours.

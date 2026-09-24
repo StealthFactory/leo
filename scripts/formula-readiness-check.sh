@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# homebrew-core-readiness-check.sh
+# formula-readiness-check.sh
 #
-# Runs the checks homebrew-core's contribution guide expects for the leo
-# formula, in order:
+# Runs the checks the leo Homebrew formula should pass before it is published to
+# the tap, in order:
 #
 #   1. Go project is sound      -> make check (gofmt, vet, tests)
 #   2. Formula style            -> brew style
@@ -18,13 +18,13 @@
 # before the audit/install/test steps can pass. If it isn't, this script stops
 # with the exact command to fix it.
 #
-# The formula file (packaging/Formula/leo.rb) is staged into a throwaway tap
+# The formula file (the tap's Formula/leo.rb) is staged into a throwaway tap
 # only for the duration of this run and untapped on exit, so no tap is left
 # behind.
 set -euo pipefail
 
 LEO_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FORMULA="${FORMULA:-$LEO_REPO/packaging/Formula/leo.rb}"
+FORMULA="${FORMULA:-$LEO_REPO/../homebrew-leo/Formula/leo.rb}"
 
 # Ephemeral local tap holding a copy of the working-tree formula, so the checks
 # validate the file exactly as it is on disk (not a git-committed version of it).
@@ -86,4 +86,4 @@ HOMEBREW_NO_INSTALL_FROM_SOURCE=1 brew install --build-from-source "$FQ"
 step "brew test"
 brew test "$FQ"
 
-printf '\nPASS: leo formula meets the homebrew-core readiness checks.\n'
+printf '\nPASS: leo formula is ready to publish to the tap.\n'
