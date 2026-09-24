@@ -1,6 +1,6 @@
 // Package store implements leo's object store: a JSON object mapping keys to
 // arbitrary JSON values, persisted atomically at mode 0600 (values may be
-// secrets), plus key ranking for tab-completion and jq querying via gojq.
+// secrets), plus jq querying via gojq.
 package store
 
 import (
@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	"github.com/itchyny/gojq"
 )
@@ -188,48 +187,6 @@ func DetectValue(input string, forceString, forceJSON bool) (json.RawMessage, er
 		return nil, err
 	}
 	return json.RawMessage(b), nil
-}
-
-// RankKeys returns keys matching prefix, ranked case-insensitively:
-//  1. prefix match, 2. substring match, 3. subsequence match (chars in order,
-//     not necessarily contiguous). Alphabetical within each tier; tiers are
-//     concatenated. An empty prefix returns every key (all are prefix matches).
-func (s *Store) RankKeys(prefix string) []string {
-	keys := s.Keys() // already alphabetical
-	p := strings.ToLower(prefix)
-
-	var pref, sub, subseq []string
-	for _, k := range keys {
-		lk := strings.ToLower(k)
-		switch {
-		case strings.HasPrefix(lk, p):
-			pref = append(pref, k)
-		case strings.Contains(lk, p):
-			sub = append(sub, k)
-		case isSubsequence(p, lk):
-			subseq = append(subseq, k)
-		}
-	}
-	out := make([]string, 0, len(pref)+len(sub)+len(subseq))
-	out = append(out, pref...)
-	out = append(out, sub...)
-	out = append(out, subseq...)
-	return out
-}
-
-// isSubsequence reports whether every char of needle appears in haystack in
-// order (not necessarily contiguously). An empty needle always matches.
-func isSubsequence(needle, haystack string) bool {
-	if needle == "" {
-		return true
-	}
-	i := 0
-	for j := 0; j < len(haystack) && i < len(needle); j++ {
-		if haystack[j] == needle[i] {
-			i++
-		}
-	}
-	return i == len(needle)
 }
 
 // Query runs a gojq expression over input and returns each result as compacted

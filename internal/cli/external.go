@@ -35,7 +35,6 @@ func registerExternals(root *cobra.Command, cfg *config.Config) {
 	}
 	// Reserve names cobra adds lazily so an external can't collide with them.
 	seen["help"] = true
-	seen["completion"] = true
 
 	addedGroups := map[string]bool{}
 

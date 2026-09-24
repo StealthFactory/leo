@@ -41,6 +41,9 @@ func TestConfigSetupWritesTypedValues(t *testing.T) {
 	if !strings.Contains(out, "wrote "+cfg.ConfigPath) {
 		t.Errorf("setup should report the written path:\n%s", out)
 	}
+	if !strings.Contains(out, "gen_lang [default language for leo generate] (bash|zsh|python|node|typescript)") {
+		t.Errorf("gen_lang prompt should show the helper text and options:\n%s", out)
+	}
 	b, err := os.ReadFile(cfg.ConfigPath)
 	if err != nil {
 		t.Fatalf("config not written: %v", err)
@@ -73,6 +76,22 @@ func TestConfigSetupKeepsDefaultsOnEnter(t *testing.T) {
 	}
 	if !strings.Contains(got, `gen_lang = "bash"`) {
 		t.Errorf("default gen_lang not kept:\n%s", got)
+	}
+}
+
+func TestConfigSetupAddsNewSet(t *testing.T) {
+	cfg := testCfg(t)
+	// Keep store/gen_lang/default path, then add a "work" set with an explicit
+	// path, then decline the next prompt.
+	stdin := "\n\n\ny\nwork\n/w/cmds\nn\n"
+	if _, err := runCmd(t, newConfigCmd(cfg), stdin, "setup"); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := os.ReadFile(cfg.ConfigPath)
+	for _, want := range []string{`name = "default"`, `name = "work"`, `path = "/w/cmds"`} {
+		if !strings.Contains(string(got), want) {
+			t.Errorf("config missing %q:\n%s", want, got)
+		}
 	}
 }
 

@@ -2,13 +2,12 @@
 
 Meet Leo, a tiny command-line sidekick you can teach new tricks in seconds.
 
-Out of the box Leo gives you a few genuinely useful things: a little JSON store
-to stash whatever you want, a "just copy this to my clipboard" command for the
-Mac, and tab-completion that actually knows your data. But the fun part is that
-anything named `leo-<something>` on your machine instantly becomes
-`leo <something>`. Write a shell script, a Python file, a snippet of
-TypeScript, whatever you like, drop it in, and Leo picks it up. No plugins to
-register, no rebuilds, no ceremony.
+Out of the box Leo gives you a couple of genuinely useful things: a little JSON
+store to stash whatever you want and a "just copy this to my clipboard" command
+for the Mac. But the fun part is that anything named `leo-<something>` on your
+machine instantly becomes `leo <something>`. Write a shell script, a Python
+file, a snippet of TypeScript, whatever you like, drop it in, and Leo picks it
+up. No plugins to register, no rebuilds, no ceremony.
 
 Think of it as your own personal `git`: a small, stable core with a growing pile
 of subcommands that are entirely yours.
@@ -34,7 +33,6 @@ brew update && brew upgrade leo
 ## Sixty seconds with Leo
 
 ```sh
-leo config init                              # set up ~/.config/leo
 leo store set limits '{"cpu":2,"mem":"4Gi"}' # stash some JSON
 leo store get limits --query .cpu            # -> 2
 leo generate hello                           # scaffold your first subcommand
@@ -93,14 +91,14 @@ mode when you want to.
 
 This is where Leo earns its keep. Any executable called `leo-<name>` living in
 one of your command directories becomes `leo <name>` automatically, showing up
-in `leo help`, in tab-completion, everywhere.
+in `leo help` alongside the built-ins.
 
 You can write these by hand, but `leo generate` gets you started with a working
 template in the language of your choice (bash, zsh, python, node, or typescript,
 with `sh`/`py`/`js`/`ts` as shorthand):
 
 ```sh
-leo generate deploy --lang python --set work
+leo generate deploy --lang python --env work
 ```
 
 When Leo runs your script, it hands you a little environment so your subcommand
@@ -141,27 +139,15 @@ for this shell? Set `LEO_PATH` and Leo folds it in (it shows up under `[env]` in
 help). When two commands share a name the earlier one wins, and Leo's own
 built-ins always come first, so nothing you drop in can shadow them by accident.
 
-## Tab-completion that gets it
-
-Set it up once:
-
-```sh
-leo completion install     # tucks _leo into a directory zsh already searches
-exec zsh                   # so it gets picked up
-```
-
-After that, just press `<TAB>`. Command names complete, and so do your store
-keys, ranked the way you'd actually want them: exact prefixes first, then
-substring matches, then loose subsequence matches, with no file names muddled
-in. It loads lazily, so it costs your shell nothing at startup.
-
-Prefer to wire things up yourself? `leo completion bash|zsh|fish|powershell`
-prints the raw script and gets out of your way.
+Prefer not to hand-edit? `leo config setup` walks through each value (press Enter
+to keep the current one) and can add new command-path sets for you.
+`leo config show` prints the resolved paths and sets, and `leo config path`
+prints the config file location.
 
 ## Releasing
 
 Leo installs from a tagged release through the Homebrew tap
-[`stealthfactory/homebrew-leo`](https://github.com/StealthFactory/homebrew-leo),
+[`stealthfactory/homebrew-leo`](https://github.com/stealthfactory/homebrew-leo),
 where the formula lives at `Formula/leo.rb`. Publishing a release means cutting a
 tag and updating that formula in the tap. This assumes the `homebrew-leo`
 checkout sits next to this repo at `../homebrew-leo`. Using `vX.Y.Z` for your

@@ -114,32 +114,3 @@ func TestExpandTilde(t *testing.T) {
 		t.Errorf("~ not expanded: %q", c.StorePath)
 	}
 }
-
-func TestInit(t *testing.T) {
-	leoDir := isolate(t)
-	path, err := Init(false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if path != filepath.Join(leoDir, "config.toml") {
-		t.Errorf("Init path = %q", path)
-	}
-	if _, err := os.Stat(path); err != nil {
-		t.Fatalf("config not written: %v", err)
-	}
-	// Refuses to overwrite without force.
-	if _, err := Init(false); err == nil {
-		t.Error("second Init(false) should error")
-	}
-	if _, err := Init(true); err != nil {
-		t.Errorf("Init(true) should overwrite: %v", err)
-	}
-	// The written config parses back into a usable default set.
-	c, err := Load()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(c.CommandPaths) != 1 || c.CommandPaths[0].Name != "default" {
-		t.Errorf("initialized config did not load a default set: %+v", c.CommandPaths)
-	}
-}

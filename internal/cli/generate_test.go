@@ -79,10 +79,10 @@ func TestGenerateInvalidName(t *testing.T) {
 	}
 }
 
-func TestGenerateUnknownSet(t *testing.T) {
+func TestGenerateUnknownEnv(t *testing.T) {
 	cfg := testCfg(t)
-	if _, err := runCmd(t, newGenerateCmd(cfg), "", "x", "--set", "nope"); err == nil {
-		t.Error("unknown --set should error")
+	if _, err := runCmd(t, newGenerateCmd(cfg), "", "x", "--env", "nope"); err == nil {
+		t.Error("unknown --env should error")
 	}
 }
 

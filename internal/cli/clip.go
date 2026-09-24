@@ -20,9 +20,6 @@ func newClipCmd(cfg *config.Config) *cobra.Command {
 		Short:   "Copy a store value or path to the clipboard (macOS)",
 		GroupID: groupBuiltin,
 		Args:    cobra.MinimumNArgs(1),
-		ValidArgsFunction: func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			return storeKeyCompletion(cfg)(nil, nil, toComplete)
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !clip.Supported() {
 				return clip.ErrUnsupported

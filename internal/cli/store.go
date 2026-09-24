@@ -39,12 +39,6 @@ func newStoreSetCmd(cfg *config.Config) *cobra.Command {
 		Use:   "set <key> [value]",
 		Short: "Set a key (JSON auto-typed; --string/--json override; --file/- read input)",
 		Args:  cobra.RangeArgs(1, 2),
-		ValidArgsFunction: func(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			if len(args) == 0 {
-				return storeKeyCompletion(cfg)(nil, args, toComplete)
-			}
-			return nil, cobra.ShellCompDirectiveNoFileComp
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key := args[0]
 
@@ -99,10 +93,9 @@ func newStoreGetCmd(cfg *config.Config) *cobra.Command {
 	var query string
 	var raw, compactOut bool
 	cmd := &cobra.Command{
-		Use:               "get <key>",
-		Short:             "Get a key (top-level strings print unquoted; --query runs jq)",
-		Args:              cobra.ExactArgs(1),
-		ValidArgsFunction: storeKeyCompletion(cfg),
+		Use:   "get <key>",
+		Short: "Get a key (top-level strings print unquoted; --query runs jq)",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			st, err := store.Open(cfg.StorePath)
 			if err != nil {
@@ -185,10 +178,9 @@ func newStoreSearchCmd(cfg *config.Config) *cobra.Command {
 
 func newStoreTypeCmd(cfg *config.Config) *cobra.Command {
 	return &cobra.Command{
-		Use:               "type <key>",
-		Short:             "Print a key's JSON kind (object|array|string|number|boolean|null)",
-		Args:              cobra.ExactArgs(1),
-		ValidArgsFunction: storeKeyCompletion(cfg),
+		Use:   "type <key>",
+		Short: "Print a key's JSON kind (object|array|string|number|boolean|null)",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			st, err := store.Open(cfg.StorePath)
 			if err != nil {
@@ -206,10 +198,9 @@ func newStoreTypeCmd(cfg *config.Config) *cobra.Command {
 
 func newStoreDeleteCmd(cfg *config.Config) *cobra.Command {
 	return &cobra.Command{
-		Use:               "delete <key>",
-		Short:             "Delete a key",
-		Args:              cobra.ExactArgs(1),
-		ValidArgsFunction: storeKeyCompletion(cfg),
+		Use:   "delete <key>",
+		Short: "Delete a key",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			st, err := store.Open(cfg.StorePath)
 			if err != nil {

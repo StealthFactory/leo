@@ -129,25 +129,6 @@ func TestQuery(t *testing.T) {
 	}
 }
 
-func TestRankKeysOrdering(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "store.json")
-	s, _ := Open(path)
-	for _, k := range []string{"food", "format", "before", "flow", "unrelated"} {
-		s.Set(k, json.RawMessage(`1`))
-	}
-	// "fo": prefix {food, format}, substring {before}, subsequence {flow}.
-	got := s.RankKeys("fo")
-	want := []string{"food", "format", "before", "flow"}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("RankKeys(fo) = %v, want %v", got, want)
-	}
-
-	// Empty prefix returns every key alphabetically.
-	if got := s.RankKeys(""); len(got) != 5 {
-		t.Errorf("RankKeys(\"\") returned %d keys, want 5", len(got))
-	}
-}
-
 func TestKind(t *testing.T) {
 	cases := map[string]string{
 		`{}`:        "object",

@@ -10,7 +10,7 @@ import (
 )
 
 func newGenerateCmd(cfg *config.Config) *cobra.Command {
-	var setName, lang string
+	var envName, lang string
 	var force bool
 	cmd := &cobra.Command{
 		Use:     "generate <name>",
@@ -18,12 +18,12 @@ func newGenerateCmd(cfg *config.Config) *cobra.Command {
 		Short:   "Scaffold a new external subcommand (leo-<name>) into a command-path set",
 		Long: "Scaffold a new external subcommand as an executable leo-<name> and drop it\n" +
 			"into a command-path set, so it runs as `leo <name>` right away and shows up\n" +
-			"in `leo help` and tab-completion.\n\n" +
+			"in `leo help`.\n\n" +
 			"Languages: bash, zsh, python, node, typescript (aliases: sh, py, js, ts).\n" +
 			"Without --lang it uses gen_lang from your config (default bash). Without\n" +
-			"--set it writes into the first configured command-path set.",
+			"--env it writes into the first configured command-path set.",
 		Example: "  leo generate deploy\n" +
-			"  leo generate deploy --lang python --set work\n" +
+			"  leo generate deploy --lang python --env work\n" +
 			"  leo gen hello --lang ts",
 		GroupID: groupBuiltin,
 		Args:    cobra.MaximumNArgs(1),
@@ -35,8 +35,8 @@ func newGenerateCmd(cfg *config.Config) *cobra.Command {
 			}
 			name := args[0]
 
-			// Choose the target set: --set by name, else the first configured set.
-			target, err := chooseSet(cfg, setName)
+			// Choose the target set: --env by name, else the first configured set.
+			target, err := chooseSet(cfg, envName)
 			if err != nil {
 				return err
 			}
@@ -54,19 +54,9 @@ func newGenerateCmd(cfg *config.Config) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&setName, "set", "", "command-path set to write into (default: first configured set)")
+	cmd.Flags().StringVar(&envName, "env", "", "command-path set to write into (default: first configured set)")
 	cmd.Flags().StringVar(&lang, "lang", "", "language: bash|zsh|python|node|typescript (aliases sh/py/js/ts)")
 	cmd.Flags().BoolVar(&force, "force", false, "overwrite an existing subcommand")
-	_ = cmd.RegisterFlagCompletionFunc("lang", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		return scaffold.Languages(), cobra.ShellCompDirectiveNoFileComp
-	})
-	_ = cmd.RegisterFlagCompletionFunc("set", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		names := make([]string, 0, len(cfg.CommandPaths))
-		for _, cp := range cfg.CommandPaths {
-			names = append(names, cp.Name)
-		}
-		return names, cobra.ShellCompDirectiveNoFileComp
-	})
 	return cmd
 }
 
@@ -74,7 +64,7 @@ func newGenerateCmd(cfg *config.Config) *cobra.Command {
 // set when name is empty.
 func chooseSet(cfg *config.Config, name string) (config.CommandPath, error) {
 	if len(cfg.CommandPaths) == 0 {
-		return config.CommandPath{}, fmt.Errorf("no command-path sets configured; run `leo config init`")
+		return config.CommandPath{}, fmt.Errorf("no command-path sets configured; run `leo config setup`")
 	}
 	if name == "" {
 		return cfg.CommandPaths[0], nil

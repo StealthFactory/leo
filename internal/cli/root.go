@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"leo/internal/config"
-	"leo/internal/store"
 )
 
 const groupBuiltin = "builtin"
@@ -45,8 +44,8 @@ func NewRoot(version string) (*cobra.Command, error) {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
-	// cobra auto-adds a `completion` command that only prints scripts; we
-	// provide our own richer one (with `install`).
+	// leo ships no shell completion (it can slow shell startup), so keep cobra
+	// from auto-adding its own `completion` command.
 	root.CompletionOptions.DisableDefaultCmd = true
 
 	root.AddGroup(&cobra.Group{ID: groupBuiltin, Title: "Built-in commands:"})
@@ -56,7 +55,6 @@ func NewRoot(version string) (*cobra.Command, error) {
 		newClipCmd(cfg),
 		newGenerateCmd(cfg),
 		newConfigCmd(cfg),
-		newCompletionCmd(),
 		newVersionCmd(version),
 	)
 
@@ -75,19 +73,5 @@ func newVersionCmd(version string) *cobra.Command {
 		Run: func(cmd *cobra.Command, _ []string) {
 			fmt.Fprintf(cmd.OutOrStdout(), "leo %s\n", version)
 		},
-	}
-}
-
-// storeKeyCompletion returns a ValidArgsFunction that completes store keys in
-// leo's prefix -> substring -> subsequence ranking, with no shell re-sort and no
-// file names mixed in.
-func storeKeyCompletion(cfg *config.Config) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-	return func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		st, err := store.Open(cfg.StorePath)
-		if err != nil {
-			return nil, cobra.ShellCompDirectiveNoFileComp
-		}
-		return st.RankKeys(toComplete),
-			cobra.ShellCompDirectiveKeepOrder | cobra.ShellCompDirectiveNoFileComp
 	}
 }

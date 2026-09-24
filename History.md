@@ -1,4 +1,11 @@
 
+v0.4.0 / 2026-09-24
+==================
+
+  * Enable interactive config setup
+  * Add tap trust notes
+  * Improve UX and language
+
 v0.3.3 / 2026-09-24
 ==================
 

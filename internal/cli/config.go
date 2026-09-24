@@ -17,26 +17,10 @@ import (
 func newConfigCmd(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "config",
-		Short:   "Inspect and initialize leo configuration",
+		Short:   "Inspect and set up leo configuration",
 		GroupID: groupBuiltin,
 		Args:    cobra.NoArgs,
 	}
-
-	var force bool
-	initCmd := &cobra.Command{
-		Use:   "init",
-		Short: "Write a commented default config.toml",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			path, err := config.Init(force)
-			if err != nil {
-				return err
-			}
-			fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\n", path)
-			return nil
-		},
-	}
-	initCmd.Flags().BoolVar(&force, "force", false, "overwrite an existing config")
 
 	showCmd := &cobra.Command{
 		Use:   "show",
@@ -63,7 +47,7 @@ func newConfigCmd(cfg *config.Config) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(initCmd, showCmd, pathCmd, newConfigSetupCmd(cfg))
+	cmd.AddCommand(showCmd, pathCmd, newConfigSetupCmd(cfg))
 	return cmd
 }
 
@@ -100,9 +84,11 @@ func runConfigSetup(cmd *cobra.Command, cfg *config.Config) error {
 	store, _ = prompt(r, w, "store_path", store)
 
 	// gen_lang is validated against the known languages; on a bad entry we
-	// re-ask, but stop (fail closed) once input is exhausted.
+	// re-ask, but stop (fail closed) once input is exhausted. The options are
+	// shown in the prompt so the user knows the valid choices.
+	langLabel := fmt.Sprintf("gen_lang [default language for leo generate] (%s)", strings.Join(scaffold.Languages(), "|"))
 	for {
-		v, eof := prompt(r, w, "gen_lang", genLang)
+		v, eof := prompt(r, w, langLabel, genLang)
 		canon, err := scaffold.NormalizeLang(v)
 		if err == nil {
 			genLang = canon
@@ -116,6 +102,29 @@ func runConfigSetup(cmd *cobra.Command, cfg *config.Config) error {
 
 	for i := range sets {
 		sets[i].Path, _ = prompt(r, w, fmt.Sprintf("command path [%s]", sets[i].Name), sets[i].Path)
+	}
+
+	// Offer to append new named sets (e.g. "work") until the user declines or
+	// input runs out.
+	for {
+		ans, eof := prompt(r, w, "add another command-path set? [y/N]", "")
+		if !isYes(ans) {
+			break
+		}
+		name, eofN := prompt(r, w, "  set name", "")
+		def := ""
+		if name != "" {
+			def = filepath.Join(cfg.BaseDir, name+"-commands")
+		}
+		path, eofP := prompt(r, w, "  set path", def)
+		if name == "" || path == "" {
+			fmt.Fprintln(w, "  skipped: a set needs both a name and a path")
+		} else {
+			sets = append(sets, config.CommandPath{Name: name, Path: path})
+		}
+		if eof || eofN || eofP {
+			break
+		}
 	}
 
 	if err := config.WriteConfig(cfg.ConfigPath, config.FileConfig{
@@ -133,13 +142,25 @@ func runConfigSetup(cmd *cobra.Command, cfg *config.Config) error {
 // user enters nothing, and reports whether input has ended (EOF) so callers can
 // stop re-prompting.
 func prompt(r *bufio.Reader, w io.Writer, label, def string) (string, bool) {
-	fmt.Fprintf(w, "%s [%s]: ", label, def)
+	if def == "" {
+		fmt.Fprintf(w, "%s: ", label)
+	} else {
+		fmt.Fprintf(w, "%s [%s]: ", label, def)
+	}
 	line, err := r.ReadString('\n')
 	eof := errors.Is(err, io.EOF)
 	if s := strings.TrimSpace(line); s != "" {
 		return s, eof
 	}
 	return def, eof
+}
+
+func isYes(s string) bool {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "y", "yes":
+		return true
+	}
+	return false
 }
 
 func firstNonEmpty(a, b string) string {

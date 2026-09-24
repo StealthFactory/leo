@@ -141,56 +141,6 @@ func Load() (*Config, error) {
 	return c, nil
 }
 
-// defaultConfigTOML is written by `leo config init`.
-const defaultConfigTOML = `# leo configuration (TOML). All keys are optional.
-
-# Where the object store lives.
-store_path = "%s"
-
-# Default language for ` + "`leo generate`" + `: bash|zsh|python|node|typescript
-gen_lang = "bash"
-
-# One or more named command-path sets, searched in the order listed.
-# Earlier sets win on name collisions and appear first in ` + "`leo help`" + `.
-[[command_path]]
-name = "default"
-path = "%s"
-
-# Example of a second set (uncomment and adjust):
-# [[command_path]]
-# name = "work"
-# path = "~/work/leo-commands"
-`
-
-// Init writes a commented default config.toml. It refuses to overwrite an
-// existing file unless force is true.
-func Init(force bool) (string, error) {
-	base := baseDir()
-	cfgPath := os.Getenv("LEO_CONFIG")
-	if cfgPath == "" {
-		cfgPath = filepath.Join(base, "config.toml")
-	} else {
-		cfgPath = expandPath(cfgPath)
-	}
-
-	if !force {
-		if _, err := os.Stat(cfgPath); err == nil {
-			return cfgPath, fmt.Errorf("%s already exists (use --force to overwrite)", cfgPath)
-		}
-	}
-	if err := os.MkdirAll(filepath.Dir(cfgPath), 0o755); err != nil {
-		return cfgPath, err
-	}
-	content := fmt.Sprintf(defaultConfigTOML,
-		filepath.Join(base, "store.json"),
-		filepath.Join(base, "commands"),
-	)
-	if err := os.WriteFile(cfgPath, []byte(content), 0o644); err != nil {
-		return cfgPath, err
-	}
-	return cfgPath, nil
-}
-
 // FileConfig holds the values persisted in config.toml. Unlike Config, these are
 // the literal on-disk values (paths unexpanded), suitable for round-tripping
 // through `leo config setup`.
