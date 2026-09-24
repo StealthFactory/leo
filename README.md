@@ -184,3 +184,7 @@ homebrew-core. See `packaging/SUBMITTING.md` for the submission steps.
 
 Leo is a personal tool, built to stay small and get out of the way. Add the
 commands you wish your shell had, and make it yours.
+
+## License
+
+MIT
