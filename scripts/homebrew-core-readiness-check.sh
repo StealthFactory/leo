@@ -18,13 +18,13 @@
 # before the audit/install/test steps can pass. If it isn't, this script stops
 # with the exact command to fix it.
 #
-# The formula is tapped from the local homebrew-leo checkout only for the
-# duration of this run and untapped on exit, so no tap is left behind.
+# The formula file (packaging/Formula/leo.rb) is staged into a throwaway tap
+# only for the duration of this run and untapped on exit, so no tap is left
+# behind.
 set -euo pipefail
 
 LEO_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TAP_REPO="${TAP_REPO:-$(cd "$LEO_REPO/../homebrew-leo" 2>/dev/null && pwd)}"
-FORMULA="$TAP_REPO/Formula/leo.rb"
+FORMULA="${FORMULA:-$LEO_REPO/packaging/Formula/leo.rb}"
 
 # Ephemeral local tap holding a copy of the working-tree formula, so the checks
 # validate the file exactly as it is on disk (not a git-committed version of it).
@@ -36,7 +36,7 @@ die()  { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
 
 command -v go   >/dev/null || die "go is not on PATH"
 command -v brew >/dev/null || die "brew is not on PATH"
-[ -n "$TAP_REPO" ] && [ -f "$FORMULA" ] || die "formula not found (set TAP_REPO=path to homebrew-leo)"
+[ -f "$FORMULA" ] || die "formula not found at $FORMULA (override with FORMULA=<path>)"
 
 step "Go checks (make check)"
 make -C "$LEO_REPO" check

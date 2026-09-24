@@ -146,5 +146,41 @@ in. It loads lazily, so it costs your shell nothing at startup.
 Prefer to wire things up yourself? `leo completion bash|zsh|fish|powershell`
 prints the raw script and gets out of your way.
 
+## Releasing
+
+Leo installs from a tagged release, and the Homebrew formula lives in
+`packaging/Formula/leo.rb`. Cutting a new version and checking the formula goes
+like this (using `vX.Y.Z` for your next version, e.g. `v0.2.3`):
+
+1. Commit whatever you want in the release. Tags capture committed code, not
+   your working tree, so anything still uncommitted won't be in it.
+
+2. Tag the release and push it. The checks fetch the tarball from GitHub, so the
+   tag has to be pushed, not just created locally:
+   ```sh
+   git tag -a vX.Y.Z -m "leo vX.Y.Z"
+   git push origin vX.Y.Z
+   ```
+
+3. Grab the tarball checksum:
+   ```sh
+   make formula-sha TAG=vX.Y.Z
+   ```
+
+4. Point the formula at the new release: in `packaging/Formula/leo.rb`, set `url`
+   to the `vX.Y.Z` tarball and `sha256` to the value from step 3.
+
+5. Run the readiness check, which validates the formula the way homebrew-core
+   would (Go tests, `brew style`, the tarball and its checksum, `brew audit
+   --new`, a source build, and `brew test`):
+   ```sh
+   make homebrew-core-readiness-check
+   ```
+   It must end in `PASS`. It stages the formula into a throwaway tap and cleans
+   up after itself, so nothing is left installed.
+
+Once it passes, the single file `packaging/Formula/leo.rb` is what you submit to
+homebrew-core. See `packaging/SUBMITTING.md` for the submission steps.
+
 Leo is a personal tool, built to stay small and get out of the way. Add the
 commands you wish your shell had, and make it yours.
