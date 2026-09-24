@@ -85,3 +85,16 @@ func TestGenerateUnknownSet(t *testing.T) {
 		t.Error("unknown --set should error")
 	}
 }
+
+func TestGenerateBareShowsHelp(t *testing.T) {
+	cfg := testCfg(t)
+	out, err := runCmd(t, newGenerateCmd(cfg), "")
+	if err != nil {
+		t.Fatalf("bare generate should not error: %v", err)
+	}
+	for _, want := range []string{"Usage:", "leo generate", "Languages:", "--lang"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("bare generate help missing %q:\n%s", want, out)
+		}
+	}
+}

@@ -190,3 +190,70 @@ func Init(force bool) (string, error) {
 	}
 	return cfgPath, nil
 }
+
+// FileConfig holds the values persisted in config.toml. Unlike Config, these are
+// the literal on-disk values (paths unexpanded), suitable for round-tripping
+// through `leo config setup`.
+type FileConfig struct {
+	StorePath string
+	GenLang   string
+	Sets      []CommandPath
+}
+
+// ReadFileConfig parses config.toml at path into a FileConfig. A missing file
+// yields a zero FileConfig and no error, so callers can fall back to defaults.
+func ReadFileConfig(path string) (FileConfig, error) {
+	var fc FileConfig
+	b, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fc, nil
+		}
+		return fc, fmt.Errorf("reading %s: %w", path, err)
+	}
+	var tc tomlConfig
+	if err := toml.Unmarshal(b, &tc); err != nil {
+		return fc, fmt.Errorf("parsing %s: %w", path, err)
+	}
+	fc.StorePath = tc.StorePath
+	fc.GenLang = tc.GenLang
+	for _, cp := range tc.CommandPath {
+		name := cp.Name
+		if name == "" {
+			name = "default"
+		}
+		fc.Sets = append(fc.Sets, CommandPath{Name: name, Path: cp.Path})
+	}
+	return fc, nil
+}
+
+// WriteConfig renders a commented config.toml from fc and writes it to path
+// (0644), creating the parent directory (0755) if needed.
+func WriteConfig(path string, fc FileConfig) error {
+	var b strings.Builder
+	b.WriteString("# leo configuration (TOML). All keys are optional.\n\n")
+	b.WriteString("# Where the object store lives.\n")
+	fmt.Fprintf(&b, "store_path = %s\n\n", tomlString(fc.StorePath))
+	b.WriteString("# Default language for `leo generate`: bash|zsh|python|node|typescript\n")
+	fmt.Fprintf(&b, "gen_lang = %s\n\n", tomlString(fc.GenLang))
+	b.WriteString("# One or more named command-path sets, searched in the order listed.\n")
+	b.WriteString("# Earlier sets win on name collisions and appear first in `leo help`.\n")
+	for _, s := range fc.Sets {
+		b.WriteString("\n[[command_path]]\n")
+		fmt.Fprintf(&b, "name = %s\n", tomlString(s.Name))
+		fmt.Fprintf(&b, "path = %s\n", tomlString(s.Path))
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, []byte(b.String()), 0o644)
+}
+
+// tomlString renders s as a TOML basic string with the two structural
+// characters (backslash and double-quote) escaped, so an untrusted value cannot
+// break out of its string or inject additional keys. Interactive input is read
+// a line at a time, so it never contains the newline that would otherwise make
+// a basic string invalid.
+func tomlString(s string) string {
+	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(s) + `"`
+}

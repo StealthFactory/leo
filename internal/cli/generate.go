@@ -16,9 +16,23 @@ func newGenerateCmd(cfg *config.Config) *cobra.Command {
 		Use:     "generate <name>",
 		Aliases: []string{"gen", "new"},
 		Short:   "Scaffold a new external subcommand (leo-<name>) into a command-path set",
+		Long: "Scaffold a new external subcommand as an executable leo-<name> and drop it\n" +
+			"into a command-path set, so it runs as `leo <name>` right away and shows up\n" +
+			"in `leo help` and tab-completion.\n\n" +
+			"Languages: bash, zsh, python, node, typescript (aliases: sh, py, js, ts).\n" +
+			"Without --lang it uses gen_lang from your config (default bash). Without\n" +
+			"--set it writes into the first configured command-path set.",
+		Example: "  leo generate deploy\n" +
+			"  leo generate deploy --lang python --set work\n" +
+			"  leo gen hello --lang ts",
 		GroupID: groupBuiltin,
-		Args:    cobra.ExactArgs(1),
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Bare `leo generate` shows help instead of a terse arg error, so it
+			// behaves like the other subcommands when run without arguments.
+			if len(args) == 0 {
+				return cmd.Help()
+			}
 			name := args[0]
 
 			// Choose the target set: --set by name, else the first configured set.
