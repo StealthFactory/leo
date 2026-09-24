@@ -17,14 +17,13 @@ of subcommands that are entirely yours.
 
 ```sh
 brew tap stealthfactory/leo
+brew trust stealthfactory/leo
 brew install leo
 ```
 
-Or in one line, without tapping first:
-
-```sh
-brew install stealthfactory/leo/leo
-```
+The `brew trust` line is a one-time step. Since Homebrew 6, a formula from a
+third-party tap won't load until you trust the tap; the official taps are
+trusted already.
 
 To upgrade later:
 
