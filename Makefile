@@ -5,10 +5,12 @@
 #   make install    build and install into ~/.local/bin
 #   make test       run the tests
 #   make check      fmt-check + vet + test (what CI would run)
+#   make release-check  validate the binary release configuration
 #   make run ARGS="store list"
 #   make help       list every target
 
 GO      ?= go
+GORELEASER ?= goreleaser
 BINARY  := leo
 PKG     := .
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -78,13 +80,9 @@ clean: ## Remove the built binary and Go build cache artifacts
 version: ## Print the version that would be baked in
 	@echo $(VERSION)
 
-.PHONY: formula-sha
-formula-sha: ## Print a tag's tarball sha256 for the formula, e.g. make formula-sha TAG=v0.2.0
-	@curl -fsSL https://github.com/StealthFactory/leo/archive/refs/tags/$(TAG).tar.gz | shasum -a 256 | awk '{print $$1}'
-
-.PHONY: formula-readiness-check
-formula-readiness-check: ## Check the formula is ready to publish to the tap
-	bash scripts/formula-readiness-check.sh
+.PHONY: release-check
+release-check: ## Validate tests, GoReleaser config, and release archives
+	PATH="$(dir $(shell command -v $(GORELEASER) 2>/dev/null)):$$PATH" bash scripts/release-readiness-check.sh
 
 .PHONY: help
 help: ## Show this help
