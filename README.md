@@ -217,6 +217,10 @@ installs.
 Leo is a personal tool, built to stay small and get out of the way. Add the
 commands you wish your shell had, and make it yours.
 
+A Stealth Factory production -
+
+<img height="200" alt="final-logo" src="https://github.com/user-attachments/assets/5ab1926a-606d-46b0-a9c8-f36b40eeb983" />
+
 ## License
 
 MIT
