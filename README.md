@@ -17,7 +17,7 @@ of subcommands that are entirely yours.
 ```sh
 brew tap stealthfactory/leo
 brew trust stealthfactory/leo
-brew install leo
+brew install --cask leo
 ```
 
 The `brew trust` line is a one-time step. Since Homebrew 6, a formula from a
@@ -27,7 +27,7 @@ trusted already.
 To upgrade later:
 
 ```sh
-brew update && brew upgrade leo
+brew update && brew upgrade --cask leo
 ```
 
 ## Sixty seconds with Leo
@@ -146,45 +146,80 @@ prints the config file location.
 
 ## Releasing
 
-Leo installs from a tagged release through the Homebrew tap
-[`stealthfactory/homebrew-leo`](https://github.com/stealthfactory/homebrew-leo),
-where the formula lives at `Formula/leo.rb`. Publishing a release means cutting a
-tag and updating that formula in the tap. This assumes the `homebrew-leo`
-checkout sits next to this repo at `../homebrew-leo`. Using `vX.Y.Z` for your
-next version, e.g. `v0.3.3`:
+Leo is distributed as signed and notarized macOS binaries through GitHub
+Releases and the
+[`stealthfactory/homebrew-leo`](https://github.com/stealthfactory/homebrew-leo)
+tap. GoReleaser builds Apple Silicon and Intel archives, publishes their
+checksums, and updates `Casks/leo.rb` in the tap.
 
-1. Commit whatever you want in the release. Tags capture committed code, not
-   your working tree, so anything still uncommitted won't be in it.
+Before the first release, configure these repository secrets under
+**StealthFactory/leo → Settings → Secrets and variables → Actions → New
+repository secret**:
 
-2. Tag the release and push it. The checks fetch the tarball from GitHub, so the
-   tag has to be pushed, not just created locally:
+- `HOMEBREW_TAP_TOKEN`
+- `MACOS_SIGN_P12`
+- `MACOS_SIGN_PASSWORD`
+- `MACOS_NOTARY_KEY`
+- `MACOS_NOTARY_KEY_ID`
+- `MACOS_NOTARY_ISSUER_ID`
+
+Create `HOMEBREW_TAP_TOKEN` at **GitHub → Settings → Developer settings →
+Personal access tokens → Fine-grained tokens → Generate new token**. Set the
+resource owner to `StealthFactory`, select only the `homebrew-leo` repository,
+and grant **Repository permissions → Contents: Read and write**. No account or
+organization permissions are needed. Copy the token immediately and save it as
+the `HOMEBREW_TAP_TOKEN` repository secret in `StealthFactory/leo`, not in the
+tap repository.
+
+The remaining values require a paid Apple Developer Program membership:
+
+1. In the Apple Developer portal, create a **Developer ID Application**
+   certificate. Import its `.cer` file into Keychain Access, export the
+   certificate and private key as a password-protected `.p12`, and save its
+   password as `MACOS_SIGN_PASSWORD`.
+2. In App Store Connect, open **Users and Access → Integrations → App Store
+   Connect API**, create a team API key, and download the `.p8` file. Save the
+   key ID as `MACOS_NOTARY_KEY_ID` and the issuer ID as
+   `MACOS_NOTARY_ISSUER_ID`. Apple allows the `.p8` file to be downloaded only
+   once.
+3. Base64-encode both files on macOS without line wrapping:
    ```sh
-   git tag -a vX.Y.Z -m "leo vX.Y.Z"
-   git push origin vX.Y.Z
+   base64 -i DeveloperIDApplication.p12 | tr -d '\n' | pbcopy
    ```
+   Save the clipboard value as `MACOS_SIGN_P12`, then repeat for the `.p8`
+   file and save it as `MACOS_NOTARY_KEY`.
 
-3. Grab the tarball checksum:
-   ```sh
-   make formula-sha TAG=vX.Y.Z
-   ```
+Keep the original certificate, private key, `.p12`, password, and `.p8` file in
+a secure credential store. Never add them to either Git repository. See
+[GoReleaser's notarization documentation](https://goreleaser.com/customization/sign/notarize/)
+for additional background.
 
-4. Point the formula at the new release: in `../homebrew-leo/Formula/leo.rb`, set
-   `url` to the `vX.Y.Z` tarball and `sha256` to the value from step 3.
+To check the build locally without signing, notarizing, or publishing:
 
-5. Run the readiness check against the tap formula (Go tests, `brew style`, the
-   tarball and its checksum, `brew audit`, a source build, and `brew test`):
-   ```sh
-   make formula-readiness-check
-   ```
-   It must end in `PASS`. It reads `../homebrew-leo/Formula/leo.rb` by default
-   (override with `FORMULA=<path>`), stages it into a throwaway tap, and cleans
-   up after itself, so nothing is left installed.
+```sh
+brew install goreleaser
+make release-check
+```
 
-6. Commit and push the formula change in the `homebrew-leo` checkout.
-   `brew update && brew upgrade leo` then picks up the new version.
+To publish `vX.Y.Z`, commit the release, then create and push its tag:
+
+```sh
+git tag -a vX.Y.Z -m "leo vX.Y.Z"
+git push origin vX.Y.Z
+```
+
+The `Release` workflow tests Leo, signs and notarizes both binaries, creates the
+GitHub Release, publishes the cask, installs and smoke-tests it, and then removes
+the legacy source formula from the tap. The formula remains available until
+that first cask release succeeds, so a failed migration does not break current
+installs.
 
 Leo is a personal tool, built to stay small and get out of the way. Add the
 commands you wish your shell had, and make it yours.
+
+A Stealth Factory production -
+
+<img height="200" alt="final-logo" src="https://github.com/user-attachments/assets/5ab1926a-606d-46b0-a9c8-f36b40eeb983" />
 
 ## License
 

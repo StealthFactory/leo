@@ -1,0 +1,74 @@
+version: 2
+
+project_name: leo
+
+builds:
+  - id: leo
+    main: .
+    binary: leo
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+    goarch:
+      - arm64
+      - amd64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+notarize:
+  macos:
+    - enabled: true
+      ids:
+        - leo
+      sign:
+        certificate: "{{ .Env.MACOS_SIGN_P12 }}"
+        password: "{{ .Env.MACOS_SIGN_PASSWORD }}"
+      notarize:
+        issuer_id: "{{ .Env.MACOS_NOTARY_ISSUER_ID }}"
+        key_id: "{{ .Env.MACOS_NOTARY_KEY_ID }}"
+        key: "{{ .Env.MACOS_NOTARY_KEY }}"
+        wait: true
+        timeout: 20m
+
+archives:
+  - id: leo
+    ids:
+      - leo
+    formats:
+      - tar.gz
+    name_template: "leo_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: checksums.txt
+
+homebrew_casks:
+  - name: leo
+    ids:
+      - leo
+    repository:
+      owner: StealthFactory
+      name: homebrew-leo
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    commit_author:
+      name: github-actions[bot]
+      email: 41898282+github-actions[bot]@users.noreply.github.com
+    commit_msg_template: "Release {{ .ProjectName }} {{ .Tag }}"
+    directory: Casks
+    homepage: https://github.com/StealthFactory/leo
+    description: Personal, extensible task-runner CLI with a JSON object store
+    license: MIT
+    binaries:
+      - leo
+    skip_upload: auto
+
+release:
+  name_template: "{{ .Tag }}"
+  prerelease: auto
