@@ -10,20 +10,20 @@ import (
 )
 
 func newGenerateCmd(cfg *config.Config) *cobra.Command {
-	var envName, lang string
+	var workspaceName, lang string
 	var force bool
 	cmd := &cobra.Command{
 		Use:     "generate <name>",
 		Aliases: []string{"gen", "new"},
-		Short:   "Scaffold a new external subcommand (leo-<name>) into a command-path set",
+		Short:   "Scaffold a new external subcommand (leo-<name>) into a workspace",
 		Long: "Scaffold a new external subcommand as an executable leo-<name> and drop it\n" +
-			"into a command-path set, so it runs as `leo <name>` right away and shows up\n" +
+			"into a workspace, so it runs as `leo <name>` right away and shows up\n" +
 			"in `leo help`.\n\n" +
 			"Languages: bash, zsh, python, node, typescript (aliases: sh, py, js, ts).\n" +
 			"Without --lang it uses gen_lang from your config (default bash). Without\n" +
-			"--env it writes into the first configured command-path set.",
+			"--workspace it writes into the first configured workspace.",
 		Example: "  leo generate deploy\n" +
-			"  leo generate deploy --lang python --env work\n" +
+			"  leo generate deploy --lang python --workspace work\n" +
 			"  leo gen hello --lang ts",
 		GroupID: groupBuiltin,
 		Args:    cobra.MaximumNArgs(1),
@@ -35,8 +35,8 @@ func newGenerateCmd(cfg *config.Config) *cobra.Command {
 			}
 			name := args[0]
 
-			// Choose the target set: --env by name, else the first configured set.
-			target, err := chooseSet(cfg, envName)
+			// Choose the target workspace: --workspace by name, else the first configured workspace.
+			target, err := chooseWorkspace(cfg, workspaceName)
 			if err != nil {
 				return err
 			}
@@ -50,29 +50,29 @@ func newGenerateCmd(cfg *config.Config) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "created %s  (set: %s)\nrun it with: leo %s\n", path, target.Name, name)
+			fmt.Fprintf(cmd.OutOrStdout(), "created %s  (workspace: %s)\nrun it with: leo %s\n", path, target.Name, name)
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&envName, "env", "", "command-path set to write into (default: first configured set)")
+	cmd.Flags().StringVar(&workspaceName, "workspace", "", "workspace to write into (default: first configured workspace)")
 	cmd.Flags().StringVar(&lang, "lang", "", "language: bash|zsh|python|node|typescript (aliases sh/py/js/ts)")
 	cmd.Flags().BoolVar(&force, "force", false, "overwrite an existing subcommand")
 	return cmd
 }
 
-// chooseSet returns the command-path set named name, or the first configured
-// set when name is empty.
-func chooseSet(cfg *config.Config, name string) (config.CommandPath, error) {
-	if len(cfg.CommandPaths) == 0 {
-		return config.CommandPath{}, fmt.Errorf("no command-path sets configured; run `leo config setup`")
+// chooseWorkspace returns the workspace named name, or the first configured
+// workspace when name is empty.
+func chooseWorkspace(cfg *config.Config, name string) (config.Workspace, error) {
+	if len(cfg.Workspaces) == 0 {
+		return config.Workspace{}, fmt.Errorf("no workspaces configured; run `leo config setup`")
 	}
 	if name == "" {
-		return cfg.CommandPaths[0], nil
+		return cfg.Workspaces[0], nil
 	}
-	for _, cp := range cfg.CommandPaths {
+	for _, cp := range cfg.Workspaces {
 		if cp.Name == name {
 			return cp, nil
 		}
 	}
-	return config.CommandPath{}, fmt.Errorf("no command-path set named %q", name)
+	return config.Workspace{}, fmt.Errorf("no workspace named %q", name)
 }

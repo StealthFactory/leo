@@ -24,15 +24,15 @@ func newConfigCmd(cfg *config.Config) *cobra.Command {
 
 	showCmd := &cobra.Command{
 		Use:   "show",
-		Short: "Print effective resolved paths and command-path sets",
+		Short: "Print effective resolved paths and workspaces",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, _ []string) {
 			w := cmd.OutOrStdout()
 			fmt.Fprintf(w, "config:   %s\n", cfg.ConfigPath)
 			fmt.Fprintf(w, "store:    %s\n", cfg.StorePath)
 			fmt.Fprintf(w, "gen_lang: %s\n", cfg.GenLang)
-			fmt.Fprintln(w, "command paths (in search order):")
-			for i, cp := range cfg.CommandPaths {
+			fmt.Fprintln(w, "workspaces (in search order):")
+			for i, cp := range cfg.Workspaces {
 				fmt.Fprintf(w, "  %d. [%s] %s\n", i+1, cp.Name, cp.Path)
 			}
 		},
@@ -73,9 +73,9 @@ func runConfigSetup(cmd *cobra.Command, cfg *config.Config) error {
 
 	store := firstNonEmpty(fc.StorePath, cfg.StorePath)
 	genLang := firstNonEmpty(fc.GenLang, cfg.GenLang)
-	sets := fc.Sets
-	if len(sets) == 0 {
-		sets = []config.CommandPath{{Name: "default", Path: filepath.Join(cfg.BaseDir, "commands")}}
+	workspaces := fc.Workspaces
+	if len(workspaces) == 0 {
+		workspaces = []config.Workspace{{Name: "default", Path: filepath.Join(cfg.BaseDir, "commands")}}
 	}
 
 	r := bufio.NewReader(cmd.InOrStdin())
@@ -100,27 +100,27 @@ func runConfigSetup(cmd *cobra.Command, cfg *config.Config) error {
 		}
 	}
 
-	for i := range sets {
-		sets[i].Path, _ = prompt(r, w, fmt.Sprintf("command path [%s]", sets[i].Name), sets[i].Path)
+	for i := range workspaces {
+		workspaces[i].Path, _ = prompt(r, w, fmt.Sprintf("workspace [%s]", workspaces[i].Name), workspaces[i].Path)
 	}
 
-	// Offer to append new named sets (e.g. "work") until the user declines or
+	// Offer to append new named workspaces (e.g. "work") until the user declines or
 	// input runs out.
 	for {
-		ans, eof := prompt(r, w, "add another command-path set? [y/N]", "")
+		ans, eof := prompt(r, w, "add another workspace? [y/N]", "")
 		if !isYes(ans) {
 			break
 		}
-		name, eofN := prompt(r, w, "  set name", "")
+		name, eofN := prompt(r, w, "  workspace name", "")
 		def := ""
 		if name != "" {
 			def = filepath.Join(cfg.BaseDir, name+"-commands")
 		}
-		path, eofP := prompt(r, w, "  set path", def)
+		path, eofP := prompt(r, w, "  workspace path", def)
 		if name == "" || path == "" {
-			fmt.Fprintln(w, "  skipped: a set needs both a name and a path")
+			fmt.Fprintln(w, "  skipped: a workspace needs both a name and a path")
 		} else {
-			sets = append(sets, config.CommandPath{Name: name, Path: path})
+			workspaces = append(workspaces, config.Workspace{Name: name, Path: path})
 		}
 		if eof || eofN || eofP {
 			break
@@ -128,9 +128,9 @@ func runConfigSetup(cmd *cobra.Command, cfg *config.Config) error {
 	}
 
 	if err := config.WriteConfig(cfg.ConfigPath, config.FileConfig{
-		StorePath: store,
-		GenLang:   genLang,
-		Sets:      sets,
+		StorePath:  store,
+		GenLang:    genLang,
+		Workspaces: workspaces,
 	}); err != nil {
 		return err
 	}

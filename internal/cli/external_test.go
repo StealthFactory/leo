@@ -82,14 +82,14 @@ func TestRegisterExternalsDiscoveryAndShadowing(t *testing.T) {
 	mustWrite("random", "ignored\n")                                           // no leo- prefix
 
 	cfg := testCfg(t)
-	cfg.CommandPaths = []config.CommandPath{{Name: "default", Path: dir}}
+	cfg.Workspaces = []config.Workspace{{Name: "default", Path: dir}}
 
 	root := &cobra.Command{Use: "leo"}
 	root.AddCommand(&cobra.Command{Use: "store", Short: "builtin store"}) // pre-existing builtin
 
 	registerExternals(root, cfg)
 
-	if c := findCmd(root, "hello"); c == nil || c.Short != "say hello" || c.GroupID != "set:default" {
+	if c := findCmd(root, "hello"); c == nil || c.Short != "say hello" || c.GroupID != "workspace:default" {
 		t.Errorf("hello not registered correctly: %+v", c)
 	}
 	if c := findCmd(root, "tool"); c == nil || c.Short != "py tool" {
@@ -105,26 +105,26 @@ func TestRegisterExternalsDiscoveryAndShadowing(t *testing.T) {
 		t.Error("non leo- file should not register")
 	}
 
-	// The set's group should have been added.
+	// The workspace's group should have been added.
 	hasGroup := false
 	for _, g := range root.Groups() {
-		if g.ID == "set:default" {
+		if g.ID == "workspace:default" {
 			hasGroup = true
 		}
 	}
 	if !hasGroup {
-		t.Error("group set:default was not added")
+		t.Error("group workspace:default was not added")
 	}
 }
 
-func TestRegisterExternalsEarlierSetWins(t *testing.T) {
+func TestRegisterExternalsEarlierWorkspaceWins(t *testing.T) {
 	first := t.TempDir()
 	second := t.TempDir()
 	os.WriteFile(filepath.Join(first, "leo-dup"), []byte("#!/usr/bin/env bash\n# leo: from first\n"), 0o755)
 	os.WriteFile(filepath.Join(second, "leo-dup"), []byte("#!/usr/bin/env bash\n# leo: from second\n"), 0o755)
 
 	cfg := testCfg(t)
-	cfg.CommandPaths = []config.CommandPath{
+	cfg.Workspaces = []config.Workspace{
 		{Name: "a", Path: first},
 		{Name: "b", Path: second},
 	}
@@ -132,7 +132,7 @@ func TestRegisterExternalsEarlierSetWins(t *testing.T) {
 	registerExternals(root, cfg)
 
 	if c := findCmd(root, "dup"); c == nil || c.Short != "from first" {
-		t.Errorf("earlier set should win: %+v", c)
+		t.Errorf("earlier workspace should win: %+v", c)
 	}
 }
 
@@ -152,8 +152,8 @@ func TestChildEnv(t *testing.T) {
 	if m["LEO_CONFIG"] != cfg.ConfigPath {
 		t.Errorf("LEO_CONFIG = %q, want %q", m["LEO_CONFIG"], cfg.ConfigPath)
 	}
-	if m["LEO_COMMAND_PATHS"] != cfg.CommandPaths[0].Path {
-		t.Errorf("LEO_COMMAND_PATHS = %q, want %q", m["LEO_COMMAND_PATHS"], cfg.CommandPaths[0].Path)
+	if m["LEO_WORKSPACE_PATHS"] != cfg.Workspaces[0].Path {
+		t.Errorf("LEO_WORKSPACE_PATHS = %q, want %q", m["LEO_WORKSPACE_PATHS"], cfg.Workspaces[0].Path)
 	}
 	if m["LEO_BIN"] == "" {
 		t.Error("LEO_BIN should be set")
@@ -171,7 +171,7 @@ func TestExternalRunsWithInjectedEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg := testCfg(t)
-	cfg.CommandPaths = []config.CommandPath{{Name: "default", Path: dir}}
+	cfg.Workspaces = []config.Workspace{{Name: "default", Path: dir}}
 
 	root := &cobra.Command{Use: "leo"}
 	registerExternals(root, cfg)

@@ -4,6 +4,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"leo/internal/config"
 )
 
 func TestConfigPath(t *testing.T) {
@@ -27,7 +29,10 @@ func TestConfigShow(t *testing.T) {
 		t.Errorf("show should list the store path:\n%s", out)
 	}
 	if !strings.Contains(out, "[default]") {
-		t.Errorf("show should list the default set:\n%s", out)
+		t.Errorf("show should list the default workspace:\n%s", out)
+	}
+	if !strings.Contains(out, "workspaces (in search order):") {
+		t.Errorf("show should label workspaces:\n%s", out)
 	}
 }
 
@@ -50,6 +55,7 @@ func TestConfigSetupWritesTypedValues(t *testing.T) {
 	}
 	got := string(b)
 	for _, want := range []string{
+		`[[workspace]]`,
 		`store_path = "/custom/store.json"`,
 		`gen_lang = "python"`,
 		`path = "/custom/commands"`,
@@ -62,7 +68,7 @@ func TestConfigSetupWritesTypedValues(t *testing.T) {
 
 func TestConfigSetupKeepsDefaultsOnEnter(t *testing.T) {
 	cfg := testCfg(t)
-	// Three bare newlines: keep store_path, gen_lang, and the default set path.
+	// Three bare newlines: keep store_path, gen_lang, and the default workspace path.
 	if _, err := runCmd(t, newConfigCmd(cfg), "\n\n\n", "setup"); err != nil {
 		t.Fatal(err)
 	}
@@ -79,9 +85,9 @@ func TestConfigSetupKeepsDefaultsOnEnter(t *testing.T) {
 	}
 }
 
-func TestConfigSetupAddsNewSet(t *testing.T) {
+func TestConfigSetupAddsNewWorkspace(t *testing.T) {
 	cfg := testCfg(t)
-	// Keep store/gen_lang/default path, then add a "work" set with an explicit
+	// Keep store/gen_lang/default path, then add a "work" workspace with an explicit
 	// path, then decline the next prompt.
 	stdin := "\n\n\ny\nwork\n/w/cmds\nn\n"
 	if _, err := runCmd(t, newConfigCmd(cfg), stdin, "setup"); err != nil {
@@ -92,6 +98,26 @@ func TestConfigSetupAddsNewSet(t *testing.T) {
 		if !strings.Contains(string(got), want) {
 			t.Errorf("config missing %q:\n%s", want, got)
 		}
+	}
+	t.Setenv("LEO_CONFIG", cfg.ConfigPath)
+	t.Setenv("LEO_PATH", "")
+	loaded, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(loaded.Workspaces) != 2 || loaded.Workspaces[1].Name != "work" || loaded.Workspaces[1].Path != "/w/cmds" {
+		t.Fatalf("setup workspaces did not survive reload: %+v", loaded.Workspaces)
+	}
+	// Running setup again must retain existing workspace entries.
+	if _, err := runCmd(t, newConfigCmd(loaded), "\n\n\n\nn\n", "setup"); err != nil {
+		t.Fatal(err)
+	}
+	reloaded, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(reloaded.Workspaces) != 2 || reloaded.Workspaces[1] != loaded.Workspaces[1] {
+		t.Fatalf("setup did not retain workspace: %+v", reloaded.Workspaces)
 	}
 }
 

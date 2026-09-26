@@ -22,9 +22,9 @@ var knownExts = map[string]bool{
 	".ts": true, ".mts": true, ".cts": true,
 }
 
-// registerExternals discovers leo-* scripts across the command-path sets (then
+// registerExternals discovers leo-* scripts across the workspaces (then
 // $PATH) and registers each as a cobra command. First registration wins:
-// built-ins beat externals, and earlier sets beat later ones.
+// built-ins beat externals, and earlier workspaces beat later ones.
 func registerExternals(root *cobra.Command, cfg *config.Config) {
 	seen := map[string]bool{}
 	for _, c := range root.Commands() {
@@ -38,13 +38,13 @@ func registerExternals(root *cobra.Command, cfg *config.Config) {
 
 	addedGroups := map[string]bool{}
 
-	register := func(setName, groupID, file, name string) {
+	register := func(workspaceName, groupID, file, name string) {
 		if seen[name] {
-			return // shadowed by a built-in or an earlier set
+			return // shadowed by a built-in or an earlier workspace
 		}
 		seen[name] = true
 		if !addedGroups[groupID] {
-			root.AddGroup(&cobra.Group{ID: groupID, Title: "[" + setName + "]"})
+			root.AddGroup(&cobra.Group{ID: groupID, Title: "[" + workspaceName + "]"})
 			addedGroups[groupID] = true
 		}
 		root.AddCommand(&cobra.Command{
@@ -58,8 +58,8 @@ func registerExternals(root *cobra.Command, cfg *config.Config) {
 		})
 	}
 
-	scan := func(setName, dir string) {
-		groupID := "set:" + setName
+	scan := func(workspaceName, dir string) {
+		groupID := "workspace:" + workspaceName
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			return
@@ -72,11 +72,11 @@ func registerExternals(root *cobra.Command, cfg *config.Config) {
 			if !ok {
 				continue
 			}
-			register(setName, groupID, filepath.Join(dir, e.Name()), name)
+			register(workspaceName, groupID, filepath.Join(dir, e.Name()), name)
 		}
 	}
 
-	for _, cp := range cfg.CommandPaths {
+	for _, cp := range cfg.Workspaces {
 		scan(cp.Name, cp.Path)
 	}
 	// Finally, leo-* found on $PATH (lowest precedence).
@@ -149,24 +149,24 @@ func runExternal(cmd *cobra.Command, file string, args []string, cfg *config.Con
 }
 
 // childEnv builds the environment for an external subcommand: the current
-// environment plus LEO_STORE/LEO_CONFIG/LEO_COMMAND_PATHS/LEO_BIN, with
+// environment plus LEO_STORE/LEO_CONFIG/LEO_WORKSPACE_PATHS/LEO_BIN, with
 // LEO_BIN's directory prepended to PATH so a script can call `leo ...`.
 func childEnv(cfg *config.Config) []string {
 	bin, _ := os.Executable()
 	binDir := filepath.Dir(bin)
 
-	paths := make([]string, 0, len(cfg.CommandPaths))
-	for _, cp := range cfg.CommandPaths {
+	paths := make([]string, 0, len(cfg.Workspaces))
+	for _, cp := range cfg.Workspaces {
 		paths = append(paths, cp.Path)
 	}
 	sep := string(os.PathListSeparator)
 
 	overrides := map[string]string{
-		"LEO_STORE":         cfg.StorePath,
-		"LEO_CONFIG":        cfg.ConfigPath,
-		"LEO_COMMAND_PATHS": strings.Join(paths, sep),
-		"LEO_BIN":           bin,
-		"PATH":              binDir + sep + os.Getenv("PATH"),
+		"LEO_STORE":           cfg.StorePath,
+		"LEO_CONFIG":          cfg.ConfigPath,
+		"LEO_WORKSPACE_PATHS": strings.Join(paths, sep),
+		"LEO_BIN":             bin,
+		"PATH":                binDir + sep + os.Getenv("PATH"),
 	}
 
 	out := make([]string, 0, len(os.Environ())+len(overrides))

@@ -1,6 +1,6 @@
 // Package config resolves leo's configuration: the base dir (XDG-aware),
 // the store path, the default generate language, and the ordered list of
-// command-path sets (from LEO_PATH and the TOML config).
+// workspaces (from LEO_PATH and the TOML config).
 package config
 
 import (
@@ -12,31 +12,33 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-// CommandPath is a named directory that leo scans for external `leo-*`
-// subcommands. Order matters: earlier sets win on name collisions and are
+// Workspace is a named directory that leo scans for external `leo-*`
+// subcommands. Order matters: earlier workspaces win on name collisions and are
 // listed first in `leo help`.
-type CommandPath struct {
+type Workspace struct {
 	Name string // group label, e.g. "default", "work", "env"
 	Path string // resolved, absolute directory
 }
 
 // Config is the effective, fully-resolved configuration for a run.
 type Config struct {
-	BaseDir      string        // ${XDG_CONFIG_HOME:-~/.config}/leo
-	ConfigPath   string        // resolved config.toml path
-	StorePath    string        // resolved store.json path
-	GenLang      string        // default `leo generate` language
-	CommandPaths []CommandPath // ordered: LEO_PATH (env) first, then config sets
+	BaseDir    string      // ${XDG_CONFIG_HOME:-~/.config}/leo
+	ConfigPath string      // resolved config.toml path
+	StorePath  string      // resolved store.json path
+	GenLang    string      // default `leo generate` language
+	Workspaces []Workspace // ordered: LEO_PATH (env) first, then config workspaces
 }
 
 // tomlConfig mirrors the on-disk config.toml schema. All keys are optional.
 type tomlConfig struct {
-	StorePath   string `toml:"store_path"`
-	GenLang     string `toml:"gen_lang"`
-	CommandPath []struct {
-		Name string `toml:"name"`
-		Path string `toml:"path"`
-	} `toml:"command_path"`
+	StorePath  string          `toml:"store_path"`
+	GenLang    string          `toml:"gen_lang"`
+	Workspaces []tomlWorkspace `toml:"workspace"`
+}
+
+type tomlWorkspace struct {
+	Name string `toml:"name"`
+	Path string `toml:"path"`
 }
 
 // home returns the user's home directory, falling back to $HOME.
@@ -106,8 +108,8 @@ func Load() (*Config, error) {
 		c.GenLang = tc.GenLang
 	}
 
-	// Command-path sets: LEO_PATH env sets first (group "env"), then config
-	// sets in listed order. If neither is present, a single "default" set.
+	// LEO_PATH workspaces first (group "env"), then config workspaces in
+	// listed order. If neither is present, a single "default" workspace.
 	seen := map[string]bool{}
 	add := func(name, path string) {
 		path = expandPath(path)
@@ -115,7 +117,7 @@ func Load() (*Config, error) {
 			return
 		}
 		seen[path] = true
-		c.CommandPaths = append(c.CommandPaths, CommandPath{Name: name, Path: path})
+		c.Workspaces = append(c.Workspaces, Workspace{Name: name, Path: path})
 	}
 
 	if lp := os.Getenv("LEO_PATH"); lp != "" {
@@ -126,8 +128,8 @@ func Load() (*Config, error) {
 		}
 	}
 
-	if len(tc.CommandPath) > 0 {
-		for _, cp := range tc.CommandPath {
+	if len(tc.Workspaces) > 0 {
+		for _, cp := range tc.Workspaces {
 			name := cp.Name
 			if name == "" {
 				name = "default"
@@ -145,9 +147,9 @@ func Load() (*Config, error) {
 // the literal on-disk values (paths unexpanded), suitable for round-tripping
 // through `leo config setup`.
 type FileConfig struct {
-	StorePath string
-	GenLang   string
-	Sets      []CommandPath
+	StorePath  string
+	GenLang    string
+	Workspaces []Workspace
 }
 
 // ReadFileConfig parses config.toml at path into a FileConfig. A missing file
@@ -167,12 +169,12 @@ func ReadFileConfig(path string) (FileConfig, error) {
 	}
 	fc.StorePath = tc.StorePath
 	fc.GenLang = tc.GenLang
-	for _, cp := range tc.CommandPath {
+	for _, cp := range tc.Workspaces {
 		name := cp.Name
 		if name == "" {
 			name = "default"
 		}
-		fc.Sets = append(fc.Sets, CommandPath{Name: name, Path: cp.Path})
+		fc.Workspaces = append(fc.Workspaces, Workspace{Name: name, Path: cp.Path})
 	}
 	return fc, nil
 }
@@ -186,10 +188,10 @@ func WriteConfig(path string, fc FileConfig) error {
 	fmt.Fprintf(&b, "store_path = %s\n\n", tomlString(fc.StorePath))
 	b.WriteString("# Default language for `leo generate`: bash|zsh|python|node|typescript\n")
 	fmt.Fprintf(&b, "gen_lang = %s\n\n", tomlString(fc.GenLang))
-	b.WriteString("# One or more named command-path sets, searched in the order listed.\n")
-	b.WriteString("# Earlier sets win on name collisions and appear first in `leo help`.\n")
-	for _, s := range fc.Sets {
-		b.WriteString("\n[[command_path]]\n")
+	b.WriteString("# One or more named workspaces, searched in the order listed.\n")
+	b.WriteString("# Earlier workspaces win on name collisions and appear first in `leo help`.\n")
+	for _, s := range fc.Workspaces {
+		b.WriteString("\n[[workspace]]\n")
 		fmt.Fprintf(&b, "name = %s\n", tomlString(s.Name))
 		fmt.Fprintf(&b, "path = %s\n", tomlString(s.Path))
 	}

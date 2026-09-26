@@ -1,5 +1,5 @@
 // Package scaffold implements `leo generate`: rendering an embedded template
-// for a new external subcommand into a chosen command-path set.
+// for a new external subcommand into a chosen workspace.
 package scaffold
 
 import (

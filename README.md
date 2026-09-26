@@ -5,7 +5,7 @@ The very first public _Stealth Factory_ make.
 
 Out of the box Leo gives you a little JSON store to stash whatever you want and
 a powerful "just copy this to my clipboard" command for the Mac, an extensible
-ecosystem with the ability to separate the plugins by environment. Your existing
+ecosystem with the ability to organize the plugins into workspaces. Your existing
 scripts are compatible with Leo as long as they're either in your `PATH` or
 in Leo's command directory.
 
@@ -114,8 +114,12 @@ template in the language of your choice (bash, zsh, python, node, or typescript,
 with `sh`/`py`/`js`/`ts` as shorthand):
 
 ```sh
-leo generate deploy --lang python --env work
+leo generate deploy --lang python --workspace work
 ```
+
+`--workspace` chooses where the new command is written. Without it, Leo uses
+the first workspace in search order. All workspaces remain available when
+running commands.
 
 When Leo runs your script, it hands you a little environment so your subcommand
 can lean on the rest of Leo:
@@ -123,29 +127,29 @@ can lean on the rest of Leo:
 - `LEO_BIN` is the path to Leo itself, so you can call back into it.
 - `LEO_STORE` is where the store lives.
 - `LEO_CONFIG` is where the config lives.
-- `LEO_COMMAND_PATHS` lists your command directories.
+- `LEO_WORKSPACE_PATHS` lists your workspace directories.
 
 The second line of a generated script is a little `# leo:` (or `// leo:`) note.
 Whatever you write there shows up as the one-line description in `leo help`, so
 future-you knows what the command does. Your script gets its arguments
 untouched, and calling back in is as easy as `"$LEO_BIN" store get something`.
 
-## Where your commands live
+## Workspaces
 
-Leo looks for subcommands in one or more named directories, in order. By default
-that's just `~/.config/leo/commands`, but you can keep, say, work and personal
-commands apart:
+A workspace is a named directory of commands. Leo searches all workspaces in
+order. By default that's just `~/.config/leo/commands`, but you can keep, say,
+work and personal commands apart:
 
 ```toml
 # ~/.config/leo/config.toml
 store_path = "~/.config/leo/store.json"
 gen_lang   = "bash"          # your favorite language for `leo generate`
 
-[[command_path]]
+[[workspace]]
 name = "default"
 path = "~/.config/leo/commands"
 
-[[command_path]]
+[[workspace]]
 name = "work"
 path = "~/work/leo-commands"
 ```
@@ -156,8 +160,8 @@ help). When two commands share a name the earlier one wins, and Leo's own
 built-ins always come first, so nothing you drop in can shadow them by accident.
 
 Prefer not to hand-edit? `leo config setup` walks through each value (press Enter
-to keep the current one) and can add new command-path sets for you.
-`leo config show` prints the resolved paths and sets, and `leo config path`
+to keep the current one) and can add new workspaces for you.
+`leo config show` prints the resolved paths and workspaces, and `leo config path`
 prints the config file location.
 
 ## Releasing

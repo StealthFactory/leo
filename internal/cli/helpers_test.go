@@ -12,16 +12,16 @@ import (
 )
 
 // testCfg returns a Config rooted at a fresh temp dir, with a single "default"
-// command-path set. Nothing is created on disk until a command writes to it.
+// workspace. Nothing is created on disk until a command writes to it.
 func testCfg(t *testing.T) *config.Config {
 	t.Helper()
 	dir := t.TempDir()
 	return &config.Config{
-		BaseDir:      dir,
-		ConfigPath:   filepath.Join(dir, "config.toml"),
-		StorePath:    filepath.Join(dir, "store.json"),
-		GenLang:      "bash",
-		CommandPaths: []config.CommandPath{{Name: "default", Path: filepath.Join(dir, "commands")}},
+		BaseDir:    dir,
+		ConfigPath: filepath.Join(dir, "config.toml"),
+		StorePath:  filepath.Join(dir, "store.json"),
+		GenLang:    "bash",
+		Workspaces: []config.Workspace{{Name: "default", Path: filepath.Join(dir, "commands")}},
 	}
 }
 

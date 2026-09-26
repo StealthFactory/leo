@@ -5,11 +5,13 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"leo/internal/config"
 )
 
 func TestGenerateCreatesSubcommand(t *testing.T) {
 	cfg := testCfg(t)
-	dir := cfg.CommandPaths[0].Path
+	dir := cfg.Workspaces[0].Path
 
 	if _, err := runCmd(t, newGenerateCmd(cfg), "", "hello"); err != nil {
 		t.Fatalf("generate hello: %v", err)
@@ -48,7 +50,7 @@ func TestGenerateLanguages(t *testing.T) {
 			if _, err := runCmd(t, newGenerateCmd(cfg), "", "a", "--lang", c.lang); err != nil {
 				t.Fatalf("generate --lang %s: %v", c.lang, err)
 			}
-			b, err := os.ReadFile(filepath.Join(cfg.CommandPaths[0].Path, c.file))
+			b, err := os.ReadFile(filepath.Join(cfg.Workspaces[0].Path, c.file))
 			if err != nil {
 				t.Fatalf("expected %s: %v", c.file, err)
 			}
@@ -79,10 +81,29 @@ func TestGenerateInvalidName(t *testing.T) {
 	}
 }
 
-func TestGenerateUnknownEnv(t *testing.T) {
+func TestGenerateUnknownWorkspace(t *testing.T) {
 	cfg := testCfg(t)
-	if _, err := runCmd(t, newGenerateCmd(cfg), "", "x", "--env", "nope"); err == nil {
-		t.Error("unknown --env should error")
+	if _, err := runCmd(t, newGenerateCmd(cfg), "", "x", "--workspace", "nope"); err == nil || !strings.Contains(err.Error(), `no workspace named "nope"`) {
+		t.Errorf("unknown workspace should report its name, got %v", err)
+	}
+}
+
+func TestGenerateIntoNamedWorkspace(t *testing.T) {
+	cfg := testCfg(t)
+	work := t.TempDir()
+	cfg.Workspaces = append(cfg.Workspaces, config.Workspace{Name: "work", Path: work})
+	out, err := runCmd(t, newGenerateCmd(cfg), "", "deploy", "--workspace", "work")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(work, "leo-deploy")); err != nil {
+		t.Fatalf("command missing from selected workspace: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(cfg.Workspaces[0].Path, "leo-deploy")); !os.IsNotExist(err) {
+		t.Fatalf("command should not be written to default workspace: %v", err)
+	}
+	if !strings.Contains(out, "workspace: work") {
+		t.Errorf("output should identify the selected workspace: %s", out)
 	}
 }
 
@@ -92,7 +113,7 @@ func TestGenerateBareShowsHelp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("bare generate should not error: %v", err)
 	}
-	for _, want := range []string{"Usage:", "leo generate", "Languages:", "--lang"} {
+	for _, want := range []string{"Usage:", "leo generate", "Languages:", "--lang", "--workspace"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("bare generate help missing %q:\n%s", want, out)
 		}

@@ -32,9 +32,9 @@ func TestLoadDefaults(t *testing.T) {
 	if c.GenLang != "bash" {
 		t.Errorf("GenLang = %q, want bash", c.GenLang)
 	}
-	if len(c.CommandPaths) != 1 || c.CommandPaths[0].Name != "default" ||
-		c.CommandPaths[0].Path != filepath.Join(leoDir, "commands") {
-		t.Errorf("CommandPaths = %+v", c.CommandPaths)
+	if len(c.Workspaces) != 1 || c.Workspaces[0].Name != "default" ||
+		c.Workspaces[0].Path != filepath.Join(leoDir, "commands") {
+		t.Errorf("Workspaces = %+v", c.Workspaces)
 	}
 }
 
@@ -47,11 +47,11 @@ func TestLoadTOML(t *testing.T) {
 store_path = "/tmp/leo-x/store.json"
 gen_lang = "python"
 
-[[command_path]]
+[[workspace]]
 name = "work"
 path = "/tmp/leo-work"
 
-[[command_path]]
+[[workspace]]
 name = "personal"
 path = "/tmp/leo-personal"
 `
@@ -68,8 +68,8 @@ path = "/tmp/leo-personal"
 	if c.GenLang != "python" {
 		t.Errorf("GenLang = %q", c.GenLang)
 	}
-	if len(c.CommandPaths) != 2 || c.CommandPaths[0].Name != "work" || c.CommandPaths[1].Name != "personal" {
-		t.Errorf("CommandPaths = %+v", c.CommandPaths)
+	if len(c.Workspaces) != 2 || c.Workspaces[0].Name != "work" || c.Workspaces[1].Name != "personal" {
+		t.Errorf("Workspaces = %+v", c.Workspaces)
 	}
 }
 
@@ -81,18 +81,18 @@ func TestLoadLeoPathPrepends(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// env sets first (grouped "env"), then the default set.
-	if len(c.CommandPaths) != 3 {
-		t.Fatalf("want 3 sets, got %+v", c.CommandPaths)
+	// env workspaces first (grouped "env"), then the default workspace.
+	if len(c.Workspaces) != 3 {
+		t.Fatalf("want 3 workspaces, got %+v", c.Workspaces)
 	}
-	if c.CommandPaths[0].Name != "env" || c.CommandPaths[0].Path != "/env/one" {
-		t.Errorf("first set = %+v", c.CommandPaths[0])
+	if c.Workspaces[0].Name != "env" || c.Workspaces[0].Path != "/env/one" {
+		t.Errorf("first workspace = %+v", c.Workspaces[0])
 	}
-	if c.CommandPaths[1].Path != "/env/two" {
-		t.Errorf("second set = %+v", c.CommandPaths[1])
+	if c.Workspaces[1].Path != "/env/two" {
+		t.Errorf("second workspace = %+v", c.Workspaces[1])
 	}
-	if c.CommandPaths[2].Path != filepath.Join(leoDir, "commands") {
-		t.Errorf("default set missing: %+v", c.CommandPaths[2])
+	if c.Workspaces[2].Path != filepath.Join(leoDir, "commands") {
+		t.Errorf("default workspace missing: %+v", c.Workspaces[2])
 	}
 }
 

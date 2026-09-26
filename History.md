@@ -1,4 +1,9 @@
 
+v0.6.0 / 2026-09-26
+==================
+
+  * Change from "env" to "workspace"s - it's more cleaner
+
 v0.5.0 / 2026-09-25
 ==================
 

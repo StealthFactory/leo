@@ -1,5 +1,5 @@
 // Package cli wires leo's cobra command tree: built-in commands plus external
-// leo-* subcommands discovered across the configured command-path sets.
+// leo-* subcommands discovered across the configured workspaces.
 package cli
 
 import (
