@@ -1,16 +1,28 @@
 # Leo 🦁
 
-Meet Leo, a tiny command-line sidekick you can teach new tricks in seconds.
+Leo is a tiny command-line sidekick you can teach new tricks in seconds.
+The very first public _Stealth Factory_ make.
 
-Out of the box Leo gives you a couple of genuinely useful things: a little JSON
-store to stash whatever you want and a "just copy this to my clipboard" command
-for the Mac. But the fun part is that anything named `leo-<something>` on your
-machine instantly becomes `leo <something>`. Write a shell script, a Python
-file, a snippet of TypeScript, whatever you like, drop it in, and Leo picks it
-up. No plugins to register, no rebuilds, no ceremony.
+Out of the box Leo gives you a little JSON store to stash whatever you want and
+a powerful "just copy this to my clipboard" command for the Mac, an extensible
+ecosystem with the ability to separate the plugins by environment. Your existing
+scripts are compatible with Leo as long as they're either in your `PATH` or
+in Leo's command directory.
 
-Think of it as your own personal `git`: a small, stable core with a growing pile
-of subcommands that are entirely yours.
+## Why
+
+Over the years I've written a ton of helpful scripts for myself and I usually
+throw them all into my home directory and invoke them through shell functions.
+This can get out of hand real quick and maintaining them has included manual
+efforts from my side. At first, I tried using various task runners and they
+usually tend to come with their own baggage and none of them have any storage.
+I see myself using this storage to store random configs or values. This gets out
+of hand really quickly. I wrote myself a simple snippet storage CLI and after
+using it for years on a daily basis, I figured it'd be a good addition to Leo.
+So, Leo is extensible and ships with a data store. The cool part about the storage
+is that it's a simple JSON, but if you give it a path to a file, it'll not just
+copy the path, but it actually copies the file to your clipboard, ready to paste
+into Slack, Telegram, Teams, or even Finder.
 
 ## Getting Leo
 
@@ -20,7 +32,7 @@ brew trust stealthfactory/leo
 brew install --cask leo
 ```
 
-The `brew trust` line is a one-time step. Since Homebrew 6, a formula from a
+The `brew trust` line is a one-time step. Since Homebrew 6+, a formula from a
 third-party tap won't load until you trust the tap; the official taps are
 trusted already.
 
@@ -44,12 +56,14 @@ That's the whole loop: keep some data around, teach Leo a new command, run it.
 
 ## The store
 
-Leo keeps a JSON object store at `~/.config/leo/store.json`, locked down to
-`0600` since you might keep secrets in there, and always written back tidy with
-sorted keys so it diffs nicely.
+Leo keeps a JSON object store at `~/.config/leo/store.json` (by default and it's
+configurable via `leo config setup`), locked down to `0600` since you might keep
+secrets in there, and always written back tidy with sorted keys so it diffs nicely.
 
-The nice touch: Leo figures out the type for you. Hand it real JSON and it stays
-JSON; hand it anything else and it's a string. No fuss.
+Don't use shell to store your secrets.
+
+Leo figures out the type for you. Hand it real JSON and it stays JSON; hand it
+anything else and it's a string. No fuss.
 
 ```sh
 leo store set dancegif https://x.gif   # not valid JSON, so it's a string
@@ -57,7 +71,7 @@ leo store set retries 5                 # a number
 leo store set limits '{"cpu":2}'        # an object
 leo store set zip --string 7001         # force a string when you need to
 
-leo store get limits --query .cpu       # slice it up with jq
+leo store get limits --query .cpu       # query your data
 leo store search dep                    # find keys fast (--values to search values too)
 leo store type limits                   # object? number? string?
 leo store list
@@ -86,6 +100,8 @@ Point it at an existing file and you get a proper file object on the clipboard,
 the same thing Finder puts there with Cmd+C. Point it at anything else and you
 get text. `--pretty` indents JSON, and `--file` or `--text` let you insist on a
 mode when you want to.
+
+NOTE: You need to permit your terminal app in Settings.
 
 ## Teaching Leo new commands
 
@@ -217,7 +233,7 @@ installs.
 Leo is a personal tool, built to stay small and get out of the way. Add the
 commands you wish your shell had, and make it yours.
 
-A Stealth Factory production -
+A Stealth Factory make -
 
 <img height="200" alt="final-logo" src="https://github.com/user-attachments/assets/5ab1926a-606d-46b0-a9c8-f36b40eeb983" />
 
