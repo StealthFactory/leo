@@ -1,13 +1,14 @@
 # Leo 🦁
 
-Leo is a tiny command-line sidekick you can teach new tricks in seconds.
-The very first public _Stealth Factory_ make.
+Leo is a CLI tool that lets you scaffold and quickly create scripts and run them
+through a unified interface. It's highly configurable and ships with a JSON data
+store accessible from the unified CLI.
 
 Out of the box Leo gives you a little JSON store to stash whatever you want and
 a powerful "just copy this to my clipboard" command for the Mac, an extensible
 ecosystem with the ability to organize the plugins into workspaces. Your existing
 scripts are compatible with Leo as long as they're either in your `PATH` or
-in Leo's command directory.
+in Leo's command directory and prefixed with `leo-`.
 
 ## Why
 
