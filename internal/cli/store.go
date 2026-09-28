@@ -17,6 +17,7 @@ import (
 func newStoreCmd(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "store",
+		Aliases: []string{"kv"},
 		Short:   "Object store for arbitrary JSON values",
 		GroupID: groupBuiltin,
 		Args:    cobra.NoArgs,
