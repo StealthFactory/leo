@@ -1,4 +1,12 @@
 
+v0.8.0 / 2026-09-28
+==================
+
+  * Improve UX on `leo kv`
+  * Add support for better flags
+  * Leo learns `leo kv --secret`
+  * Leo learns `leo kv -s your-search`
+
 v0.7.0 / 2026-09-28
 ==================
 

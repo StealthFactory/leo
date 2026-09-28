@@ -115,9 +115,9 @@ jobs:
           expected_version="${GITHUB_REF_NAME#v}"
           "$leo_bin" version | grep -F "leo $expected_version"
           export XDG_CONFIG_HOME="$RUNNER_TEMP/leo-config"
-          "$leo_bin" store set answer 42
-          test "$("$leo_bin" store type answer)" = "number"
-          test "$("$leo_bin" store get answer)" = "42"
+          "$leo_bin" kv answer 42
+          test "$("$leo_bin" kv -r --query type answer)" = "number"
+          test "$("$leo_bin" kv answer)" = "42"
 
       - name: Remove legacy source formula
         shell: bash

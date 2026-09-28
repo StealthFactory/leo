@@ -11,8 +11,8 @@ def main(argv):
     if argv[:1] in (["-h"], ["--help"]):
         print("Usage: leo {{.Name}} [args...]"); return 0
     # Example: use the object store
-    #   subprocess.run([LEO, "store", "set", "{{.Name}}.last", " ".join(argv)], check=True)
-    #   print(subprocess.run([LEO, "store", "get", "{{.Name}}.last"],
+    #   subprocess.run([LEO, "kv", "-f", "{{.Name}}.last", " ".join(argv)], check=True)
+    #   print(subprocess.run([LEO, "kv", "{{.Name}}.last"],
     #                        text=True, capture_output=True).stdout, end="")
     print("leo {{.Name}}:", *argv)
     return 0

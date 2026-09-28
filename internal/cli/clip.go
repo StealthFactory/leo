@@ -16,7 +16,7 @@ import (
 func newClipCmd(cfg *config.Config) *cobra.Command {
 	var forceFile, forceText, prettyOut bool
 	cmd := &cobra.Command{
-		Use:     "clip <key-or-path>...",
+		Use:     "clip [flags] <key-or-path>...",
 		Short:   "Copy a store value or path to the clipboard (macOS)",
 		GroupID: groupBuiltin,
 		Args:    cobra.MinimumNArgs(1),

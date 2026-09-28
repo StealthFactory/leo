@@ -11,7 +11,7 @@ case "${1:-}" in
 esac
 
 # Example: use the object store
-#   "$leo" store set {{.Name}}.last "$*"
-#   "$leo" store get {{.Name}}.last
+#   "$leo" kv -f {{.Name}}.last "$*"
+#   "$leo" kv {{.Name}}.last
 
 echo "leo {{.Name}}: $*"
