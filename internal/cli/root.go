@@ -37,9 +37,11 @@ func NewRoot(version string) (*cobra.Command, error) {
 	}
 
 	root := &cobra.Command{
-		Use:           "leo",
-		Short:         "a helpful assistant",
-		Long:          "Leo, a helpful assistant.\n\nA tiny command-line sidekick with a JSON object store, a macOS clipboard\nhelper, and git-style external subcommands (leo-<name>) you can add without\nrecompiling. No plugins, no rebuilds.",
+		Use:   "leo",
+		Short: "A CLI sidekick for custom commands and a JSON data store",
+		Long: "Leo is a CLI sidekick that lets you scaffold and quickly create custom commands\n" +
+			"and run them through a unified interface. It's highly configurable and ships\n" +
+			"with a JSON data store accessible from the same interface.",
 		Version:       version,
 		SilenceUsage:  true,
 		SilenceErrors: true,

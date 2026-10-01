@@ -1,8 +1,8 @@
 # Leo 🦁
 
-Leo is a CLI tool that lets you scaffold and quickly create scripts and run them
-through a unified interface. It's highly configurable and ships with a JSON data
-store accessible from the unified CLI.
+Leo is a CLI sidekick that lets you scaffold and quickly create custom commands
+and run them through a unified interface. It's highly configurable and ships
+with a JSON data store accessible from the same interface.
 
 Out of the box Leo gives you a little JSON store to stash whatever you want and
 a powerful "just copy this to my clipboard" command for the Mac, an extensible
@@ -28,19 +28,17 @@ into Slack, Telegram, Teams, or even Finder.
 ## Getting Leo
 
 ```sh
-brew tap stealthfactory/leo
-brew trust stealthfactory/leo
-brew install --cask leo
+brew install --cask stealthfactory/leo/leo
 ```
 
-The `brew trust` line is a one-time step. Since Homebrew 6+, a formula from a
-third-party tap won't load until you trust the tap; the official taps are
-trusted already.
+Homebrew adds the tap automatically and trusts the Leo cask when you install
+it by its full name. No separate `brew tap` or `brew trust` step is needed.
 
 To upgrade later:
 
 ```sh
-brew update && brew upgrade --cask leo
+brew update
+brew upgrade --cask leo
 ```
 
 ## Basic usage
