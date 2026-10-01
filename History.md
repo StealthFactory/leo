@@ -1,4 +1,9 @@
 
+v0.9.0 / 2026-10-01
+==================
+
+  * Handle Ctrl+C better with long-running processes
+
 v0.8.0 / 2026-09-28
 ==================
 
