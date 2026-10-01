@@ -6,7 +6,7 @@
 #   make test       run the tests
 #   make check      fmt-check + vet + test (what CI would run)
 #   make release-check  validate the binary release configuration
-#   make run ARGS="store list"
+#   make run ARGS="kv"
 #   make help       list every target
 
 GO      ?= go
@@ -37,7 +37,7 @@ uninstall: ## Remove leo from $(BINDIR)
 	rm -f $(BINDIR)/$(BINARY)
 
 .PHONY: run
-run: ## Build and run leo, e.g. make run ARGS="store list"
+run: ## Build and run leo, e.g. make run ARGS="kv"
 	$(GO) run -ldflags "$(LDFLAGS)" $(PKG) $(ARGS)
 
 .PHONY: test

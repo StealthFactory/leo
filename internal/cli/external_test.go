@@ -1,10 +1,15 @@
 package cli
 
 import (
+	"bufio"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -170,6 +175,7 @@ func TestExternalRunsWithInjectedEnv(t *testing.T) {
 	if err := os.WriteFile(script, []byte(body), 0o755); err != nil {
 		t.Fatal(err)
 	}
+
 	cfg := testCfg(t)
 	cfg.Workspaces = []config.Workspace{{Name: "default", Path: dir}}
 
@@ -188,5 +194,88 @@ func TestExternalRunsWithInjectedEnv(t *testing.T) {
 	}
 	if !strings.Contains(out, "store="+cfg.StorePath) {
 		t.Errorf("external did not receive LEO_STORE: %q", out)
+	}
+}
+
+func TestExternalInterruptHelper(t *testing.T) {
+	script := os.Getenv("LEO_TEST_INTERRUPT_SCRIPT")
+	if script == "" {
+		return
+	}
+	if err := runExternal(&cobra.Command{}, script, nil, testCfg(t)); err != nil {
+		t.Fatal(err)
+	}
+	os.Exit(0)
+}
+
+func TestExternalTerminalInterrupt(t *testing.T) {
+	cases := []struct {
+		name string
+		trap string
+		want int
+	}{
+		{"handled", "trap 'exit 0' INT", 0},
+		{"handled-error", "trap 'exit 7' INT", 7},
+		{"unhandled", "trap - INT", 130},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			script := filepath.Join(t.TempDir(), "leo-interrupt")
+			body := "#!/bin/sh\n" + tc.trap + "\nprintf 'ready\\n'\nwhile :; do :; done\n"
+			if err := os.WriteFile(script, []byte(body), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			c := exec.Command(os.Args[0], "-test.run=^TestExternalInterruptHelper$")
+			c.Env = append(os.Environ(), "LEO_TEST_INTERRUPT_SCRIPT="+script)
+			c.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+			stdout, err := c.StdoutPipe()
+			if err != nil {
+				t.Fatal(err)
+			}
+			c.Stderr = os.Stderr
+			if err := c.Start(); err != nil {
+				t.Fatal(err)
+			}
+			ready := make(chan error, 1)
+			go func() {
+				line, err := bufio.NewReader(stdout).ReadString('\n')
+				if err == nil && line != "ready\n" {
+					err = fmt.Errorf("unexpected startup output: %q", line)
+				}
+				ready <- err
+			}()
+			wait := make(chan error, 1)
+			go func() { wait <- c.Wait() }()
+			finished := false
+			defer func() {
+				if !finished {
+					syscall.Kill(-c.Process.Pid, syscall.SIGKILL)
+					<-wait
+				}
+			}()
+			select {
+			case err := <-ready:
+				if err != nil {
+					t.Fatal(err)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("external command did not become ready")
+			}
+			if err := syscall.Kill(-c.Process.Pid, syscall.SIGINT); err != nil {
+				t.Fatal(err)
+			}
+			select {
+			case err := <-wait:
+				finished = true
+				if tc.want == 0 && err != nil {
+					t.Fatalf("handled interrupt: %v", err)
+				}
+				if got := c.ProcessState.ExitCode(); got != tc.want {
+					t.Fatalf("exit status = %d, want %d", got, tc.want)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("external command did not stop after Ctrl-C")
+			}
+		})
 	}
 }

@@ -14,7 +14,7 @@ if (args[0] === "-h" || args[0] === "--help") {
 }
 
 // Example: use the object store
-//   execFileSync(leo, ["store", "set", `{{.Name}}.last`, args.join(" ")], { stdio: "inherit" });
-//   execFileSync(leo, ["store", "get", `{{.Name}}.last`], { stdio: "inherit" });
+//   execFileSync(leo, ["kv", "-f", `{{.Name}}.last`, args.join(" ")], { stdio: "inherit" });
+//   execFileSync(leo, ["kv", `{{.Name}}.last`], { stdio: "inherit" });
 
 console.log(`leo {{.Name}}:`, ...args);

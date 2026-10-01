@@ -44,18 +44,22 @@ brew upgrade --cask leo
 ## Basic usage
 
 ```sh
-leo kv set foo "bar"
-leo kv get foo                              # -> bar
-leo kv set limits '{"cpu":2,"mem":"4Gi"}'
-leo kv get limits --query '.cpu'             # -> 2
+leo kv foo "bar"                           # save a value
+leo kv foo                                 # -> bar
+leo kv foo "baz"                           # asks before replacing bar
+leo kv -d foo                              # delete it
+leo kv limits '{"cpu":2,"mem":"4Gi"}'
+leo kv --query '.cpu' limits               # -> 2
+leo kv --secret api.token "s3cr3t"         # listed as SECRET
+leo kv -s api                              # search, best matches first
 leo generate hello                         # scaffold your first subcommand
 leo hello world                            # ...and run it
 leo help                                   # see everything, yours included
 ```
 
 `kv` is an alias for `store`. Pick whichever reads better to you; they share the
-same data, subcommands, and flags. You can set a value with `leo kv` and read it
-back with `leo store`.
+same data and flags. You can set a value with `leo kv` and read it back with
+`leo store`.
 
 ## Command reference
 
@@ -72,13 +76,12 @@ command name does, including in help requests.
 
 | Command | Aliases | What it does |
 | --- | --- | --- |
-| `leo store` | `leo kv` | Show help for the JSON store. |
-| `leo store set <key> [value]` | `leo kv set` | Save or replace a value. |
-| `leo store get <key>` | `leo kv get` | Read a value, optionally with a query. |
-| `leo store search <substr>` | `leo kv search` | Find keys, optionally searching value text too. |
-| `leo store type <key>` | `leo kv type` | Print the value's JSON type. |
-| `leo store delete <key>` | `leo kv delete` | Remove one key. |
-| `leo store list` | `leo kv list` | Print all keys and values. |
+| `leo store` | `leo kv` | Print all keys and values. |
+| `leo store <key>` | `leo kv <key>` | Read a value, optionally with a query. |
+| `leo store <key> <value>` | `leo kv <key> <value>` | Save a value; asks before replacing one. |
+| `leo store --secret <key> <value>` | `leo kv --secret <key> <value>` | Save a value that lists as `SECRET`. |
+| `leo store -s <text>` | `leo kv -s <text>` | Search keys and values, best matches first. |
+| `leo store -d <key>` | `leo kv -d <key>` | Remove one key. |
 | `leo clip <key-or-path>...` | — | Copy values or files to the macOS clipboard. |
 | `leo generate <name>` | `leo gen`, `leo new` | Create a script in a workspace. |
 | `leo config` | — | Show help for configuration commands. |
@@ -98,23 +101,27 @@ Run `leo` on its own, `leo help`, or `leo --help` to see the available commands.
 External commands appear under their workspace names. For a particular command:
 
 ```sh
-leo help store set
-leo kv get --help
+leo help kv
+leo kv --help
 leo generate -h
 ```
 
 Every built-in accepts `-h` / `--help`. The root command also accepts `-v` /
 `--version`; `leo version` prints the version too. There are no other global
 flags. Leo does not install shell completion or expose a `completion` command.
+To find a store key without TAB completion, [search](#searching-leo-kv--s-text)
+for it with `leo kv -s`.
 
-Flags belong to the command shown below. Long flags with values accept either
+Flags belong to the command shown below and go before its arguments, as in
+`leo new --lang zsh foo-bar`. Leo also accepts flags after the arguments, so
+`leo new foo-bar --lang zsh` works too. Long flags with values accept either
 `--query '.cpu'` or `--query='.cpu'`. Boolean flags default to off; adding one,
 such as `--compact`, turns it on. Use `--` to end flag parsing when an argument
 starts with a dash:
 
 ```sh
-leo kv set temperature -- -5
-leo kv set option --string -- --verbose
+leo kv -- temperature -5
+leo kv --string -- option --verbose
 ```
 
 Successful built-in commands exit with status `0`. Errors exit with status `1`
@@ -127,68 +134,114 @@ Leo keeps its store in `~/.config/leo/store.json` by default. It's a plain JSON
 object, with your keys at the top level. Writes replace the file atomically,
 format the JSON with sorted keys, and set file permissions to `0600` (read and
 write for your user). See [configuration](#configuration-config) to move it.
+Once you have [secrets](#secrets---secret), Leo also keeps a reserved `$leo`
+key in the same file to remember which keys they are.
+
+```text
+leo kv [flags] [<key> [<value>]]
+```
+
+What `leo kv` does depends on how many arguments you give it:
+
+| You type | What happens |
+| --- | --- |
+| `leo kv` | Print every key and value. |
+| `leo kv <key>` | Print one value. |
+| `leo kv <key> <value>` | Save a value, asking before replacing an existing one. |
+| `leo kv --secret <key> <value>` | Save a value that lists as `SECRET`. |
+| `leo kv -s <text>` | Search keys and values, best matches first. |
+| `leo kv -d <key>` | Delete a key. |
 
 Keys are literal, case-sensitive strings. A key such as `deploy.host` is one
-key, not a path into a nested object. Quote keys containing spaces.
+key, not a path into a nested object. Quote keys containing spaces. Any name
+works as a key, including `list` or `help`, except `$leo`, which Leo reserves
+for its own data. Single-quote it in the shell: `'$leo'`.
 
-#### `leo store set <key> [value]`
+Each flag applies only to some of these actions, for example `--string` only
+when saving a value. Passing a flag that doesn't apply is an error, so a typo
+never gets silently ignored.
+
+#### Saving a value: `leo kv <key> <value>`
 
 Save a new value or replace an existing one. Leo recognizes valid JSON, so
 numbers, booleans, arrays, objects, and `null` keep their types. Anything that
 isn't valid JSON becomes a string.
 
 ```sh
-leo kv set greeting "hello there"              # string
-leo kv set retries 5                           # number
-leo kv set enabled true                        # boolean
-leo kv set fallback null                       # null
-leo kv set hosts '["api","worker"]'            # array
-leo kv set limits '{"cpu":2,"mem":"4Gi"}'       # object
-leo kv set homepage https://example.com        # string
+leo kv greeting "hello there"              # string
+leo kv retries 5                           # number
+leo kv enabled true                        # boolean
+leo kv fallback null                       # null
+leo kv hosts '["api","worker"]'            # array
+leo kv limits '{"cpu":2,"mem":"4Gi"}'      # object
+leo kv homepage https://example.com        # string
 ```
 
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--string` | Off | Store the input literally as a string, even if it looks like JSON. |
-| `--json` | Off | Require valid JSON; reject invalid input instead of storing a string. |
-| `--file <path>` | Unset | Read the value from a file. |
+| Flag | Short form | Default | Meaning |
+| --- | --- | --- | --- |
+| `--string` | — | Off | Store the input literally as a string, even if it looks like JSON. |
+| `--json` | — | Off | Require valid JSON; reject invalid input instead of storing a string. |
+| `--file <path>` | — | Unset | Read the value from a file. |
+| `--force` | `-f` | Off | Replace an existing value without asking. |
+| `--secret` | — | Off | Mark the value [secret](#secrets---secret). |
 
 `--string` and `--json` are mutually exclusive. Shell quotes group arguments;
 they don't force Leo to store a string. For example, `"42"` reaches Leo as `42`
-and becomes a number. Use `--string 42` or pass JSON string quotes with `'"42"'`
+and becomes a number. Use `--string` or pass JSON string quotes with `'"42"'`
 when you want a string.
 
-You must provide a value, `--file`, or a positional `-` to read stdin:
+Instead of a value, you can use `--file` or a `-` to read stdin:
 
 ```sh
-leo kv set zip --string 7001
-leo kv set limits --json --file ./limits.json
-printf '%s\n' '{"cpu":2}' | leo kv set limits - --json
-printf '%s' 'a multiline note' | leo kv set note - --string
+leo kv --string zip 7001
+leo kv --json --file ./limits.json limits
+printf '%s\n' '{"cpu":2}' | leo kv --json limits -
+printf '%s' 'a multiline note' | leo kv --string note -
 ```
 
-File input takes precedence if you also supply a positional value. File contents
-are read as-is; stdin input has trailing newline characters removed. Piping
-input alone isn't enough: include the `-`. To store a literal single dash, read
-it from a file or pass it as a JSON string: `leo kv set dash '"-"'`.
+File input takes precedence if you also supply a value. File contents are read
+as-is; stdin input has trailing newline characters removed. Piping input alone
+isn't enough: include the `-`. To store a literal single dash, read it from a
+file or pass it as a JSON string: `leo kv dash '"-"'`.
 
 The confirmation includes the stored type, for example `set foo (string)`.
 Replacing a key also prints its previous value. Files and URLs supplied as
 ordinary values are just strings; use `--file` when you want the file's contents.
 For images and other large files, storing their path keeps the JSON store small.
 
-#### `leo store get <key>`
+##### Replacing an existing value
+
+Saving to a key that already exists shows the current value and asks first:
+
+```text
+$ leo kv foo baz
+foo already exists: "bar"
+update it to "baz"? [y/N]: y
+set foo (string); previous value: "bar"
+```
+
+Anything other than `y` or `yes` keeps the old value and prints `foo unchanged`.
+Pass `-f` to replace without asking. Saving the value a key already holds changes
+nothing and doesn't ask. For a secret, the prompt shows `SECRET` in place of
+both values.
+
+Leo only asks when stdin is a terminal. In scripts and pipes, or when the value
+itself comes from stdin with `-`, replacing an existing key without `-f` is an
+error. That way a script never hangs waiting for an answer.
+
+#### Reading a value: `leo kv <key>`
 
 Read one value. A top-level string prints without quotes, ready to use in a
 shell script. Other values print as indented JSON.
 
 ```sh
-leo kv get greeting                            # hello there
-leo kv get limits                              # indented object
-leo kv get limits -c                           # {"cpu":2,"mem":"4Gi"}
-leo kv get limits --query '.cpu'                # 2
-leo kv get limits --query '.mem'                # "4Gi"
-leo kv get limits --query '.mem' -r             # 4Gi
+leo kv greeting                            # hello there
+leo kv limits                              # indented object
+leo kv -c limits                           # {"cpu":2,"mem":"4Gi"}
+leo kv --query '.cpu' limits               # 2
+leo kv --query '.mem' limits               # "4Gi"
+leo kv -r --query '.mem' limits            # 4Gi
+leo kv -r --query type limits              # object
 ```
 
 | Flag | Short form | Default | Meaning |
@@ -202,7 +255,7 @@ Quote expressions so the shell doesn't interpret their punctuation. A query
 can return several results, and Leo prints each separately:
 
 ```sh
-leo kv get hosts --query '.[]' -r
+leo kv -r --query '.[]' hosts
 # api
 # worker
 ```
@@ -210,53 +263,13 @@ leo kv get hosts --query '.[]' -r
 You can combine `-r` and `-c` as `-rc`. Raw output takes precedence for string
 results; compact output applies to the remaining JSON results. Without a query,
 strings are already unquoted, so `-r` doesn't change them. To get a JSON-quoted
-string, use `--query '.'` without `-r`.
+string, use `--query '.'` without `-r`. To see a value's JSON type (`object`,
+`array`, `string`, `number`, `boolean`, or `null`), query `type` as shown above.
 
 A missing key is an error. A stored `null` is a real value and prints `null`.
+A secret prints its real value, so scripts can use it.
 
-#### `leo store search <substr>`
-
-Find keys containing a substring, ignoring case. Results are sorted by key and
-printed as a key, a tab, and a compact value preview. Long previews are shortened
-to 80 bytes, including the trailing `...`.
-
-```sh
-leo kv search deploy
-leo kv search example.com --values
-leo kv search limits --query '.cpu'
-```
-
-| Flag | Default | Meaning |
-| --- | --- | --- |
-| `--values` | Off | Also look for the substring in the stored JSON value text. |
-| `--query <expression>` | Unset | Project each matching value through a jq expression. |
-
-`--query` runs after the substring match; it doesn't decide which keys match.
-Each query result gets its own `key<TAB>result` line, with full compact JSON
-instead of a shortened preview. Strings stay quoted. No matches means no output
-and a successful exit.
-
-#### `leo store type <key>`
-
-Print exactly one of `object`, `array`, `string`, `number`, `boolean`, or `null`.
-This command has no flags beyond help. A missing key is an error.
-
-```sh
-leo kv type limits                             # object
-leo kv type zip                                # string
-```
-
-#### `leo store delete <key>`
-
-Remove one key and print `deleted <key>`. The deletion happens immediately,
-without a confirmation prompt. A missing key is an error. There are no flags
-beyond help and no shorter alias for `delete`.
-
-```sh
-leo kv delete greeting
-```
-
-#### `leo store list`
+#### Listing everything: `leo kv`
 
 Print every key and value, sorted by key. Each line contains the key, a tab,
 and the full value as compact JSON. Strings stay quoted. An empty or not-yet-created
@@ -267,20 +280,121 @@ store produces no output.
 | `--query <expression>` | Unset | Run a jq expression against each value separately. |
 
 ```sh
-leo kv list
-leo kv list --query 'type'                      # show each key and its JSON type
-leo kv list --query 'select(type == "object")'  # only object values
+leo kv
+leo kv --query 'type'                           # show each key and its JSON type
+leo kv --query 'select(type == "object")'       # only object values
 ```
 
-The query receives one stored value at a time, not the entire store. As with
-search, a query that produces multiple results prints the key on each line.
-Queries that produce no results omit that key. Invalid queries or runtime query
-errors fail the command.
+The query receives one stored value at a time, not the entire store. A query
+that produces multiple results prints the key on each line. Queries that produce
+no results omit that key. Invalid queries or runtime query errors fail the
+command. Secrets always print as one `key<TAB>SECRET` line; queries don't run
+on them.
+
+#### Searching: `leo kv -s <text>`
+
+Find keys by typing part of them. Search ignores case and prints the best
+matches first, one `key<TAB>preview` line each. The preview is the value as
+compact JSON, shortened to 80 bytes, including the trailing `...`. Leo ranks
+matches in this order:
+
+1. The key is the text: `api`.
+2. The key starts with the text: `api.token`, `apiary`.
+3. A word inside the key starts with the text. Words start after `.`, `-`,
+   `_`, `/`, `:`, `@`, `#`, a space, or at a camelCase hump: `github.api`,
+   `awsApiKey`.
+4. The key contains the text: `rapid`.
+5. The key contains the text's letters in order: `dh` finds `deploy.host`.
+6. The value contains the text: `hosts`, holding `["api","worker"]`.
+
+Within a group, earlier matches come first (for letters in order, the tightest
+match), then keys sort alphabetically.
+
+```sh
+leo kv -s api
+leo kv -s dh                                    # deploy.host
+leo kv -s --query '.cpu' limits                 # project each match
+```
+
+| Flag | Short form | Default | Meaning |
+| --- | --- | --- | --- |
+| `--search` | `-s` | Off | Search for the argument instead of reading it as a key. |
+| `--query <expression>` | — | Unset | Project each matching value through a jq expression. |
+
+`-s` takes exactly one search term; quote it if it contains spaces. `--query`
+runs after the match; it doesn't decide which keys match. Each query result gets
+its own `key<TAB>result` line, with full compact JSON instead of a shortened
+preview. Secret keys match by name only: Leo never searches their values, and
+they print as `SECRET`. No matches means no output and a successful exit.
+
+Leo can't offer TAB completion for keys without shell setup: zsh handles TAB
+itself, before Leo runs. Searching with the first few letters is the zero-setup
+way to find a key.
+
+#### Deleting a key: `leo kv -d <key>`
+
+Remove one key and print `deleted <key>`. The deletion happens immediately,
+without a confirmation prompt. A missing key is an error. The long form is
+`--delete`.
+
+```sh
+leo kv -d greeting
+```
+
+#### Secrets: `--secret`
+
+Mark a value secret to keep it off your screen. Listings, search results,
+replacement prompts, and confirmations show `SECRET` instead of the value.
+Reading the key with `leo kv <key>` or copying it with `leo clip <key>` still
+gives you the real value.
+
+```sh
+leo kv --secret api.token "s3cr3t"
+pbpaste | leo kv --secret api.token -          # keeps the secret out of shell history
+leo kv                                         # api.token	SECRET
+leo kv api.token                               # s3cr3t
+curl -H "Authorization: Bearer $(leo kv api.token)" https://example.com
+```
+
+The confirmation shows the type as `(string, secret)`. A secret stays secret
+when you update it, even without `--secret`. To mark or unmark an existing key
+without retyping its value, leave the value out:
+
+```sh
+leo kv --secret api.token                      # api.token is now secret
+leo kv --secret=false api.token                # api.token is no longer secret
+```
+
+With a value, `--secret=false` saves it as a regular value. Listing and search
+never run `--query` on a secret, since a query's results or errors could reveal
+it; each secret prints one `key<TAB>SECRET` line instead.
+
+Secrets are masked, not encrypted. `store.json` holds them in plain text with
+`0600` permissions, and scripts that read `$LEO_STORE` directly see them. Leo
+records which keys are secret under a reserved `$leo` key in the same file:
+
+```json
+{
+  "$leo": {
+    "secrets": ["api.token"]
+  },
+  "api.token": "s3cr3t",
+  "greeting": "hello there"
+}
+```
+
+Values keep their normal shape, and a value and its secret mark are always saved
+in the same write. Copying or backing up `store.json` keeps your secrets marked.
+`$leo` never appears in listings, search results, or `clip`, and you can't set,
+mark, or delete it with `leo kv`. Leo removes it when no secrets remain. Scripts
+that read `$LEO_STORE` with `jq` can drop it with `jq 'del(.["$leo"])'`. If
+`$leo` isn't in the expected shape, Leo stops with an error rather than show
+your secrets.
 
 ### Copying things (`clip`)
 
 ```text
-leo clip <key-or-path>... [--file | --text] [--pretty]
+leo clip [--file | --text] [--pretty] <key-or-path>...
 ```
 
 `clip` uses the macOS clipboard. Give it a store key or an existing path. Leo
@@ -293,13 +407,13 @@ joining multiple values with newlines. Image files also include image data on
 the clipboard for apps that support pasting images.
 
 ```sh
-leo kv set logo "$PWD/logo.png"                # assuming logo.png exists
+leo kv logo "$PWD/logo.png"                   # assuming logo.png exists
 leo clip logo                                 # copy the file named by the value
-leo clip ./report.pdf ./chart.png              # copy two existing files
+leo clip ./report.pdf ./chart.png             # copy two existing files
 leo clip limits                               # copy JSON text
-leo clip limits --pretty                      # copy indented JSON
-leo clip logo --text                          # copy the stored path as text
-leo clip "hello there" --text                  # copy literal text
+leo clip --pretty limits                      # copy indented JSON
+leo clip --text logo                          # copy the stored path as text
+leo clip --text "hello there"                 # copy literal text
 ```
 
 | Flag | Default | Meaning |
@@ -322,7 +436,7 @@ error.
 ### Teaching Leo new commands (`generate`, `gen`, `new`)
 
 ```text
-leo generate <name> [--lang <language>] [--workspace <name>] [--force]
+leo generate [--lang <language>] [--workspace <name>] [--force] <name>
 ```
 
 Generate a small working script, edit it, and run it through Leo. `gen` and `new`
@@ -330,8 +444,8 @@ are aliases for `generate`:
 
 ```sh
 leo generate hello
-leo gen deploy --lang python --workspace work
-leo new build --lang ts
+leo gen --lang python --workspace work deploy
+leo new --lang ts build
 leo hello world
 ```
 
@@ -457,11 +571,13 @@ a one-line description in `leo help`:
 ```sh
 #!/usr/bin/env bash
 # leo: print the saved deployment host
-"$LEO_BIN" kv get deploy.host
+"$LEO_BIN" kv deploy.host
 ```
 
 External commands run from your current directory and receive their arguments,
-stdin, stdout, and stderr directly. Leo forwards their exit status. Flags after
+stdin, stdout, and stderr directly. Leo forwards their exit status. On terminal
+Ctrl-C, Leo waits for the script to stop: a script that handles the interrupt
+can exit successfully, while an unhandled SIGINT returns status `130`. Flags after
 an external command, including `--help`, go to the script itself; each script
 owns its own flags. Generated templates handle `-h` and `--help` as their first
 argument. `leo help <name>` shows Leo's entry for the command without running it.
@@ -494,7 +610,7 @@ When Leo runs an external command, it also sets these variables for the child:
 | `LEO_WORKSPACE_PATHS` | Workspace paths in search order, separated by the platform path separator. It excludes directories discovered only through `PATH`. |
 
 The directory containing `LEO_BIN` is prepended to the child's `PATH`, so a plain
-`leo kv get foo` inside your script uses the same installation too.
+`leo kv foo` inside your script uses the same installation too.
 
 ## Releasing
 

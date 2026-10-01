@@ -13,7 +13,7 @@ func newGenerateCmd(cfg *config.Config) *cobra.Command {
 	var workspaceName, lang string
 	var force bool
 	cmd := &cobra.Command{
-		Use:     "generate <name>",
+		Use:     "generate [flags] <name>",
 		Aliases: []string{"gen", "new"},
 		Short:   "Scaffold a new external subcommand (leo-<name>) into a workspace",
 		Long: "Scaffold a new external subcommand as an executable leo-<name> and drop it\n" +
@@ -23,8 +23,8 @@ func newGenerateCmd(cfg *config.Config) *cobra.Command {
 			"Without --lang it uses gen_lang from your config (default bash). Without\n" +
 			"--workspace it writes into the first configured workspace.",
 		Example: "  leo generate deploy\n" +
-			"  leo generate deploy --lang python --workspace work\n" +
-			"  leo gen hello --lang ts",
+			"  leo generate --lang python --workspace work deploy\n" +
+			"  leo gen --lang ts hello",
 		GroupID: groupBuiltin,
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

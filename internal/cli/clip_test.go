@@ -22,9 +22,9 @@ func TestResolveClipArg(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	st.Set("greeting", json.RawMessage(`"hello there"`))
-	st.Set("limits", json.RawMessage(`{"cpu":2}`))
-	st.Set("logo", json.RawMessage(`"`+realFile+`"`))
+	st.Set("greeting", json.RawMessage(`"hello there"`), false)
+	st.Set("limits", json.RawMessage(`{"cpu":2}`), false)
+	st.Set("logo", json.RawMessage(`"`+realFile+`"`), false)
 
 	cases := []struct {
 		name         string
