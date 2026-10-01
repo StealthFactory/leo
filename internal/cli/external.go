@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/spf13/cobra"
 
@@ -139,8 +141,16 @@ func runExternal(cmd *cobra.Command, file string, args []string, cfg *config.Con
 	c.Stderr = cmd.ErrOrStderr()
 	c.Env = childEnv(cfg)
 
+	// Terminal Ctrl-C reaches both processes; let the child decide its status.
+	interrupts := make(chan os.Signal, 1)
+	signal.Notify(interrupts, os.Interrupt)
+	defer signal.Stop(interrupts)
+
 	if err := c.Run(); err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
+			if status, ok := ee.Sys().(syscall.WaitStatus); ok && status.Signaled() {
+				os.Exit(128 + int(status.Signal()))
+			}
 			os.Exit(ee.ExitCode())
 		}
 		return err

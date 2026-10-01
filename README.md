@@ -577,7 +577,9 @@ a one-line description in `leo help`:
 ```
 
 External commands run from your current directory and receive their arguments,
-stdin, stdout, and stderr directly. Leo forwards their exit status. Flags after
+stdin, stdout, and stderr directly. Leo forwards their exit status. On terminal
+Ctrl-C, Leo waits for the script to stop: a script that handles the interrupt
+can exit successfully, while an unhandled SIGINT returns status `130`. Flags after
 an external command, including `--help`, go to the script itself; each script
 owns its own flags. Generated templates handle `-h` and `--help` as their first
 argument. `leo help <name>` shows Leo's entry for the command without running it.
