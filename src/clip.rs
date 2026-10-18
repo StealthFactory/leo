@@ -162,6 +162,9 @@ pub fn copy_text(text: &str) -> Result<()> {
 }
 
 pub fn copy_files(paths: &[String]) -> Result<()> {
+    if paths.is_empty() {
+        return Err("no files to copy".into());
+    }
     #[derive(Serialize)]
     struct Item {
         path: String,

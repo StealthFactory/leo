@@ -1,4 +1,9 @@
 
+v0.12.1 / 2026-10-17
+==================
+
+  * Fix clip issue where the value wasn't getting properly copied
+
 v0.12.0 / 2026-10-17
 ==================
 

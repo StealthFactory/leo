@@ -330,6 +330,49 @@ fn clipboard_resolution_preserves_values_and_recognizes_existing_files() {
     ] {
         assert_eq!(clip::image_type(path), expected);
     }
-    assert!(clip::copy_files(&[]).is_err());
-    assert!(clip::copy_files(&[dir.path().join("missing").to_string_lossy().into()]).is_err());
+}
+
+#[test]
+fn invalid_clipboard_files_are_rejected_without_launching_osascript() {
+    const CHILD_INPUT: &str = "LEO_TEST_MISSING_CLIPBOARD_FILE";
+    if let Some(missing) = std::env::var_os(CHILD_INPUT) {
+        let missing = missing.to_string_lossy().into_owned();
+        assert_eq!(clip::copy_files(&[]), Err("no files to copy".into()));
+        assert_eq!(
+            clip::copy_files(std::slice::from_ref(&missing)),
+            Err(format!("not an existing file: {missing}"))
+        );
+        return;
+    }
+
+    // Run in a child with a private PATH rather than changing the environment
+    // of parallel tests. The stub succeeds deliberately: validation must not
+    // accidentally depend on an unavailable or failing system clipboard.
+    let dir = tempfile::tempdir().unwrap();
+    let stub = dir.path().join("osascript");
+    let calls = dir.path().join("calls");
+    fs::write(
+        &stub,
+        "#!/bin/sh\nprintf 'called\\n' >> \"$LEO_TEST_CLIPBOARD_CALLS\"\nprintf 'ok\\n'\n",
+    )
+    .unwrap();
+    fs::set_permissions(&stub, fs::Permissions::from_mode(0o755)).unwrap();
+    let output = std::process::Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "tests::invalid_clipboard_files_are_rejected_without_launching_osascript",
+            "--nocapture",
+        ])
+        .env(CHILD_INPUT, dir.path().join("missing"))
+        .env("LEO_TEST_CLIPBOARD_CALLS", &calls)
+        .env("PATH", dir.path())
+        .output()
+        .unwrap();
+    assert!(!calls.exists(), "invalid input launched osascript");
+    assert!(
+        output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
 }

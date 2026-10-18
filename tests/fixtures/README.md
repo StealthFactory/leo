@@ -39,6 +39,8 @@ requests are covered by the recorded scenarios. Rust unit tests in
 secret metadata, reserved keys, search ranking, raw JSON handling, template
 permissions, language and workspace selection, external names and markers,
 config serialization, and clipboard argument resolution and validation.
+Invalid clipboard inputs are checked in a child process with a successful
+`osascript` stub, so validation cannot depend on desktop clipboard access.
 
 `builtins.json` lists the previous query engine's builtins. The suite checks
 their availability as well as query results and errors in `cli.json`.
