@@ -1,90 +1,61 @@
 # leo - build, test, and install helpers.
-#
-# Common usage:
-#   make            build ./leo
-#   make install    build and install into ~/.local/bin
-#   make test       run the tests
-#   make check      fmt-check + vet + test (what CI would run)
-#   make release-check  validate the binary release configuration
-#   make run ARGS="kv"
-#   make help       list every target
-
-GO      ?= go
+CARGO ?= cargo
 GORELEASER ?= goreleaser
-BINARY  := leo
-PKG     := .
+BINARY := leo
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
-LDFLAGS := -X main.version=$(VERSION)
-
-# Install location. Override with: make install PREFIX=/usr/local
-PREFIX  ?= $(HOME)/.local
-BINDIR  := $(PREFIX)/bin
+PREFIX ?= $(HOME)/.local
+BINDIR := $(PREFIX)/bin
 
 .DEFAULT_GOAL := build
+.PHONY: build install uninstall run test test-race cover vet fmt fmt-check tidy check clean version release-check help
 
-.PHONY: build
-build: ## Build the leo binary into ./leo
-	$(GO) build -ldflags "$(LDFLAGS)" -o $(BINARY) $(PKG)
+build: ## Build the Rust binary into ./leo
+	LEO_VERSION="$(VERSION)" $(CARGO) build --release --locked
+	cp target/release/leo $(BINARY)
 
-.PHONY: install
-install: ## Build and install leo into $(BINDIR)
-	@mkdir -p $(BINDIR)
-	$(GO) build -ldflags "$(LDFLAGS)" -o $(BINDIR)/$(BINARY) $(PKG)
-	@echo "installed $(BINDIR)/$(BINARY) ($(VERSION))"
+install: build ## Build and install into $(BINDIR)
+	mkdir -p "$(BINDIR)"
+	cp $(BINARY) "$(BINDIR)/$(BINARY)"
 
-.PHONY: uninstall
 uninstall: ## Remove leo from $(BINDIR)
-	rm -f $(BINDIR)/$(BINARY)
+	rm -f "$(BINDIR)/$(BINARY)"
 
-.PHONY: run
-run: ## Build and run leo, e.g. make run ARGS="kv"
-	$(GO) run -ldflags "$(LDFLAGS)" $(PKG) $(ARGS)
+run: ## Run leo, e.g. make run ARGS="kv"
+	LEO_VERSION="$(VERSION)" $(CARGO) run --locked -- $(ARGS)
 
-.PHONY: test
-test: ## Run all tests
-	$(GO) test ./...
+test: ## Run Rust tests and Go/Rust CLI compatibility checks
+	$(CARGO) test --locked
+	cd tests/reference && go test ./...
 
-.PHONY: test-race
-test-race: ## Run tests with the race detector
-	$(GO) test -race ./...
+test-race: test ## Also run the reference's race checks
+	cd tests/reference && go test -race ./...
 
-.PHONY: cover
-cover: ## Run tests and print a coverage summary
-	$(GO) test -cover ./...
+cover: ## Run Rust coverage (requires cargo-llvm-cov)
+	$(CARGO) llvm-cov --locked
 
-.PHONY: vet
-vet: ## Run go vet
-	$(GO) vet ./...
+vet: ## Run Clippy
+	$(CARGO) clippy --locked --all-targets --all-features -- -D warnings
 
-.PHONY: fmt
-fmt: ## Format all Go code in place
-	gofmt -s -w .
+fmt: ## Format Rust code
+	$(CARGO) fmt
 
-.PHONY: fmt-check
-fmt-check: ## Fail if any file needs gofmt
-	@out=$$(gofmt -s -l .); if [ -n "$$out" ]; then echo "needs gofmt:"; echo "$$out"; exit 1; fi
+fmt-check: ## Check Rust formatting
+	$(CARGO) fmt -- --check
 
-.PHONY: tidy
-tidy: ## Tidy go.mod and go.sum
-	$(GO) mod tidy
+tidy: ## Refresh the Cargo lockfile
+	$(CARGO) generate-lockfile
 
-.PHONY: check
-check: fmt-check vet test ## Run fmt-check, vet, and tests
+check: fmt-check vet test ## Run formatting, Clippy, tests, and compatibility checks
 
-.PHONY: clean
-clean: ## Remove the built binary and Go build cache artifacts
+clean: ## Remove built binaries and Cargo output
 	rm -f $(BINARY)
-	$(GO) clean
+	$(CARGO) clean
 
-.PHONY: version
 version: ## Print the version that would be baked in
 	@echo $(VERSION)
 
-.PHONY: release-check
-release-check: ## Validate tests, GoReleaser config, and release archives
+release-check: ## Validate tests, GoReleaser configuration, and release archives
 	PATH="$(dir $(shell command -v $(GORELEASER) 2>/dev/null)):$$PATH" bash scripts/release-readiness-check.sh
 
-.PHONY: help
-help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-		| awk 'BEGIN{FS=":.*?## "}{printf "  %-12s %s\n", $$1, $$2}'
+help: ## Show every target
+	@awk 'BEGIN {FS=":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-14s %s\n", $$1, $$2}' $(MAKEFILE_LIST)

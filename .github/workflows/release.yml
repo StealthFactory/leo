@@ -15,7 +15,7 @@ concurrency:
 jobs:
   release:
     name: Build, sign, notarize, and publish
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     outputs:
       stable: ${{ steps.release-kind.outputs.stable }}
     steps:
@@ -27,8 +27,12 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version-file: tests/reference/go.mod
           cache: true
+          cache-dependency-path: tests/reference/go.sum
+
+      - name: Set up Rust
+        run: rustup show active-toolchain
 
       - name: Verify release secrets
         shell: bash

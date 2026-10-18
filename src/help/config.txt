@@ -1,0 +1,14 @@
+Inspect and set up leo configuration
+
+Usage:
+  leo config [command]
+
+Available Commands:
+  path        Print the config file path
+  setup       Interactively set config values (Enter keeps the shown value)
+  show        Print effective resolved paths and workspaces
+
+Flags:
+  -h, --help   help for config
+
+Use "leo config [command] --help" for more information about a command.

@@ -1,0 +1,26 @@
+[package]
+name = "leo"
+version = "0.10.0"
+edition = "2024"
+license = "MIT"
+description = "A CLI sidekick for custom commands and a JSON data store"
+repository = "https://github.com/StealthFactory/leo"
+build = "build.rs"
+
+[dependencies]
+jaq-all = "0.3.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["raw_value", "arbitrary_precision"] }
+toml = "1.1.8"
+libc = "0.2"
+tempfile = "3"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+
+[patch.crates-io]
+jaq-core = { path = "vendor/jaq-core" }
+jaq-json = { path = "vendor/jaq-json" }
+

@@ -1,0 +1,24 @@
+Scaffold a new external subcommand as an executable leo-<name> and drop it
+into a workspace, so it runs as `leo <name>` right away and shows up
+in `leo help`.
+
+Languages: bash, zsh, python, node, typescript (aliases: sh, py, js, ts).
+Without --lang it uses gen_lang from your config (default bash). Without
+--workspace it writes into the first configured workspace.
+
+Usage:
+  leo generate [flags] <name>
+
+Aliases:
+  generate, gen, new
+
+Examples:
+  leo generate deploy
+  leo generate --lang python --workspace work deploy
+  leo gen --lang ts hello
+
+Flags:
+      --force              overwrite an existing subcommand
+  -h, --help               help for generate
+      --lang string        language: bash|zsh|python|node|typescript (aliases sh/py/js/ts)
+      --workspace string   workspace to write into (default: first configured workspace)

@@ -4,20 +4,17 @@ project_name: leo
 
 builds:
   - id: leo
-    main: .
+    builder: rust
+    command: build
     binary: leo
     env:
-      - CGO_ENABLED=0
-    goos:
-      - darwin
-    goarch:
-      - arm64
-      - amd64
+      - LEO_VERSION={{ .Version }}
+    targets:
+      - aarch64-apple-darwin
+      - x86_64-apple-darwin
     flags:
-      - -trimpath
-    ldflags:
-      - -s -w -X main.version={{ .Version }}
-    mod_timestamp: "{{ .CommitTimestamp }}"
+      - --release
+      - --locked
 
 notarize:
   macos:
@@ -44,6 +41,7 @@ archives:
     files:
       - README.md
       - LICENSE
+      - THIRD_PARTY_NOTICES
 
 checksum:
   name_template: checksums.txt

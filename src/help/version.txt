@@ -1,0 +1,7 @@
+Print the leo version
+
+Usage:
+  leo version [flags]
+
+Flags:
+  -h, --help   help for version

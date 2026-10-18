@@ -1,0 +1,22 @@
+Leo is a CLI sidekick that lets you scaffold and quickly create custom commands
+and run them through a unified interface. It's highly configurable and ships
+with a JSON data store accessible from the same interface.
+
+Usage:
+  leo [command]
+
+Built-in commands:
+  clip        Copy a store value or path to the clipboard (macOS)
+  config      Inspect and set up leo configuration
+  generate    Scaffold a new external subcommand (leo-<name>) into a workspace
+  store       Get, set, search, and delete values in the JSON store (alias: kv)
+  version     Print the leo version
+
+Additional Commands:
+  help        Help about any command
+
+Flags:
+  -h, --help      help for leo
+  -v, --version   version for leo
+
+Use "leo [command] --help" for more information about a command.

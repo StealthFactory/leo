@@ -1,0 +1,7 @@
+Interactively set config values (Enter keeps the shown value)
+
+Usage:
+  leo config setup [flags]
+
+Flags:
+  -h, --help   help for setup

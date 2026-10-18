@@ -1,0 +1,54 @@
+Get, set, search, list, and delete values in leo's JSON store.
+
+  leo kv                           list every key and value
+  leo kv <key>                     print a value
+  leo kv <key> <value>             set a value (asks before replacing one)
+  leo kv --secret <key> <value>    set a value that lists as SECRET
+  leo kv -s <text>                 search keys and values, best matches first
+  leo kv -d <key>                  delete a key
+
+Values are auto-typed: valid JSON keeps its type, anything else is stored
+as a string. Use --string or --json to override, --file <path> to read a
+file, or - as the value to read stdin.
+
+Secrets show as SECRET in lists, search results, and prompts, while
+`leo kv <key>` still prints the real value. Updating a secret keeps it
+secret. `leo kv --secret <key>` marks an existing key and --secret=false
+unmarks it. Secrets are masked, not encrypted: the store file holds them
+in plain text, and lists which keys are secret under the reserved key $leo.
+
+Search ignores case and ranks exact key matches first, then keys that
+start with the text, keys with a word that starts with it (after . - _ /
+or a camelCase hump), keys containing it, and keys containing its letters
+in order (dh finds deploy.host). Values containing the text come last;
+secret values are never searched.
+
+Usage:
+  leo store [flags] [key [value]]
+
+Aliases:
+  store, kv
+
+Examples:
+  leo kv greeting "hello there"
+  leo kv greeting
+  leo kv -f greeting hi
+  leo kv --string zip 7001
+  leo kv --query '.cpu' limits
+  pbpaste | leo kv --secret api.token -    # keeps the secret out of shell history
+  leo kv --secret api.token                # mark an existing key secret
+  leo kv -s api
+  leo kv -d greeting
+
+Flags:
+  -c, --compact        single-line output
+  -d, --delete         delete the key
+      --file string    read the value from a file
+  -f, --force          replace an existing value without asking
+  -h, --help           help for store
+      --json           require the value to be valid JSON
+      --query string   jq expression to project the value (each value when listing or searching)
+  -r, --raw            unquote string query results
+  -s, --search         search keys and values, best matches first
+      --secret         mark the value secret so it lists as SECRET (--secret=false unmarks)
+      --string         store the value as a string

@@ -1,0 +1,7 @@
+Print the config file path
+
+Usage:
+  leo config path [flags]
+
+Flags:
+  -h, --help   help for path

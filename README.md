@@ -250,7 +250,7 @@ leo kv -r --query type limits              # object
 | `--raw` | `-r` | Off | Print string query results without JSON quotes. |
 | `--compact` | `-c` | Off | Print each JSON result on one line. |
 
-Queries run inside Leo using gojq; you don't need a separate `jq` executable.
+Queries run inside Leo using the Rust `jaq` engine; you don't need a separate `jq` executable.
 Quote expressions so the shell doesn't interpret their punctuation. A query
 can return several results, and Leo prints each separately:
 
@@ -611,6 +611,27 @@ When Leo runs an external command, it also sets these variables for the child:
 
 The directory containing `LEO_BIN` is prepended to the child's `PATH`, so a plain
 `leo kv foo` inside your script uses the same installation too.
+
+## Development
+
+Leo is written in Rust. Install the toolchain with [rustup](https://rustup.rs),
+then run `make build` to create `./leo`. `make install` installs it in
+`~/.local/bin`; `make run ARGS="kv"` runs it from source.
+
+`make check` runs formatting, Clippy, Rust tests, and a compatibility suite
+against the frozen Go implementation in `tests/reference`. The compatibility
+suite additionally needs Go (the version in `tests/reference/go.mod`) and
+Python 3. It uses disposable homes and compares command output, exit status,
+stored data, permissions, generated scripts, clipboard requests, and signals.
+Go is only a test dependency; the shipped binary contains no Go code.
+
+The query layer includes compatibility definitions and small patches to
+`jaq-core` and `jaq-json` for the previous engine's object traversal,
+assignment, number behavior, and errors. Run the compatibility suite when
+updating those dependencies.
+
+On macOS, `python3 tests/native_clipboard.py ./leo` also tests the real clipboard
+with text, multiple files, and image data, then restores its original contents.
 
 ## Releasing
 

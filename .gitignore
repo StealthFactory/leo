@@ -5,3 +5,7 @@ plan.md
 
 # GoReleaser output
 /dist
+
+# Cargo output
+/target
+__pycache__/

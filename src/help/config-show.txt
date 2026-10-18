@@ -1,0 +1,7 @@
+Print effective resolved paths and workspaces
+
+Usage:
+  leo config show [flags]
+
+Flags:
+  -h, --help   help for show

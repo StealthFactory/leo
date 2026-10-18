@@ -12,9 +12,10 @@ step() { printf '\n==> %s\n' "$1"; }
 die()  { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
 
 command -v go >/dev/null || die "go is not on PATH"
+command -v cargo >/dev/null || die "cargo is not on PATH (install Rust from https://rustup.rs)"
 command -v goreleaser >/dev/null || die "goreleaser is not on PATH (install it with: brew install goreleaser)"
 
-step "Go checks"
+step "Rust checks and Go compatibility reference"
 make -C "$LEO_REPO" check
 
 step "GoReleaser configuration"

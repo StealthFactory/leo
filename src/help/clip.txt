@@ -1,0 +1,10 @@
+Copy a store value or path to the clipboard (macOS)
+
+Usage:
+  leo clip [flags] <key-or-path>...
+
+Flags:
+      --file     treat arguments as file paths (file objects)
+  -h, --help     help for clip
+      --pretty   pretty-print JSON values when copying as text
+      --text     copy as text
