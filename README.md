@@ -619,11 +619,12 @@ then run `make build` to create `./leo`. `make install` installs it in
 `~/.local/bin`; `make run ARGS="kv"` runs it from source.
 
 `make check` runs formatting, Clippy, Rust tests, and a compatibility suite
-against the frozen Go implementation in `tests/reference`. The compatibility
-suite additionally needs Go (the version in `tests/reference/go.mod`) and
-Python 3. It uses disposable homes and compares command output, exit status,
-stored data, permissions, generated scripts, clipboard requests, and signals.
-Go is only a test dependency; the shipped binary contains no Go code.
+using recorded expectations in `tests/fixtures/cli.json`. The compatibility
+suite needs Python 3. It uses disposable homes and checks command output, exit
+status, stored data, permissions, generated scripts, clipboard requests, and
+signals. Building, testing, and releasing Leo do not require a Go toolchain.
+See [`tests/fixtures/README.md`](tests/fixtures/README.md) for the baseline's
+provenance and instructions for updating expectations.
 
 The query layer includes compatibility definitions and small patches to
 `jaq-core` and `jaq-json` for the previous engine's object traversal,

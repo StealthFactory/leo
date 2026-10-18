@@ -24,13 +24,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: tests/reference/go.mod
-          cache: true
-          cache-dependency-path: tests/reference/go.sum
-
       - name: Set up Rust
         run: rustup show active-toolchain
 

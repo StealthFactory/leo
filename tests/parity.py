@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Compare observable behavior with the frozen pre-port CLI, in disposable homes.
+"""Check observable behavior against recorded expectations, in disposable homes.
 
 Every step compares exit status, stdout, stderr, file bytes and permissions.
-The reference is test-only; it is never part of the Rust build or distribution.
+Expected results were captured from the pre-port implementation; no second
+implementation or compiler is needed to run this suite.
 """
 import argparse
 import dataclasses
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -294,11 +296,17 @@ def snapshot(root):
 
 
 def run(case, binary, root):
-    prepare(case, root)
+    # Fixture inputs must not inherit the developer's filesystem policy. Cases
+    # that exercise another umask apply it only to the CLI process below.
+    original_umask = os.umask(0o022)
+    try:
+        prepare(case, root)
+    finally:
+        os.umask(original_umask)
     env = {k: v for k, v in os.environ.items() if not k.startswith("LEO_") and k not in ["XDG_CONFIG_HOME", "HOME"]}
     env.update(HOME=str(root / "home"), XDG_CONFIG_HOME=str(root / "xdg"), PATH=str(root / "bin")+":/usr/bin:/bin")
     env.update({k: replace(v, root) for k, v in case.env.items()})
-    preexec = (lambda: os.umask(case.umask)) if case.umask >= 0 else None
+    preexec = lambda: os.umask(case.umask if case.umask >= 0 else 0o022)
     trace = []
     for command in case.steps:
         args = [replace(a, root) for a in command.args]
@@ -345,38 +353,79 @@ def run(case, binary, root):
     return trace
 
 
+def case_digest(case):
+    """Bind expectations to their inputs so edited cases cannot silently pass."""
+    payload = json.dumps(dataclasses.asdict(case), sort_keys=True,
+                         default=lambda b: {"bytes": b.hex()})
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
+def recorded_trace(trace, root):
+    # surrogateescape round-trips arbitrary bytes, including non-UTF-8 argv and
+    # previews truncated in the middle of a UTF-8 character. JSON escapes them.
+    def text(value):
+        if isinstance(value, bytes):
+            value = value.decode("utf-8", errors="surrogateescape")
+        return value.replace(str(root), "@ROOT@")
+
+    result = []
+    for status, stdout, stderr, files in trace:
+        entries = {}
+        for name, (kind, contents) in files.items():
+            if kind == "link":
+                entry = {"kind": "link", "target": text(contents)}
+            elif kind == "directory":
+                entry = {"kind": "directory", "mode": contents}
+            else:
+                entry = {"kind": "file", "mode": kind, "contents": text(contents)}
+            entries[name] = entry
+        result.append({"exit": status, "stdout": text(stdout),
+                       "stderr": text(stderr), "files": entries})
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--rust", type=Path, required=True)
-    parser.add_argument("--go", type=Path)
     parser.add_argument("--filter", default="")
     args = parser.parse_args()
     rust = args.rust.resolve()
+    fixture = json.loads((Path(__file__).parent / "fixtures/cli.json").read_text())
+    if fixture["schema"] != 1:
+        parser.error("unsupported CLI fixture schema")
     with tempfile.TemporaryDirectory(prefix="leo-parity-") as temp:
         base = Path(temp).resolve()
-        reference = args.go.resolve() if args.go else base / "reference" / "leo"
-        if not args.go:
-            reference.parent.mkdir()
-            env = dict(os.environ, GOCACHE=os.environ.get("GOCACHE", str(Path(tempfile.gettempdir()) / "leo-workspace-go-cache")))
-            subprocess.run(["go", "build", "-ldflags", "-X main.version=parity", "-o", str(reference), "."], cwd=Path(__file__).parent / "reference", env=env, check=True)
         failed = 0
         checked = 0
         for case in CASES:
             if args.filter not in case.name:
                 continue
-            expected = run(case, reference, base / "fixture")
-            actual = run(case, rust, base / "fixture")
+            saved = fixture["cases"].get(case.name)
+            if saved is None or saved["input_sha256"] != case_digest(case):
+                print("FAIL:", case.name, "has missing or stale expectations")
+                failed += 1
+                continue
+            expected = saved["steps"]
+            actual = recorded_trace(run(case, rust, base / "fixture"), base / "fixture")
             checked += len(case.steps)
+            if len(expected) != len(actual):
+                print("FAIL:", case.name, "has the wrong number of expected steps")
+                failed += 1
+                continue
             for i, (want, got) in enumerate(zip(expected, actual)):
                 if want == got:
                     continue
                 failed += 1
                 print("FAIL:", case.name, "step", i, case.steps[i].args)
-                for label, a, b in zip(["exit", "stdout", "stderr", "files"], want, got):
+                for label in ["exit", "stdout", "stderr", "files"]:
+                    a, b = want[label], got[label]
                     if a != b:
-                        print(" ", label, "Go:", repr(a)[:1800], "Rust:", repr(b)[:1800])
+                        print(" ", label, "Expected:", repr(a)[:1800], "Actual:", repr(b)[:1800])
                 break
-        print(f"Compared {checked} invocations across {sum(args.filter in c.name for c in CASES)} scenarios; {failed} failures.")
+        scenarios = sum(args.filter in c.name for c in CASES)
+        if not scenarios:
+            parser.error("no scenarios match --filter")
+        print(f"Checked {checked} invocations across {scenarios} scenarios; {failed} failures.")
         return bool(failed)
 
 

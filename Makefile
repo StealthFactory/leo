@@ -7,7 +7,7 @@ PREFIX ?= $(HOME)/.local
 BINDIR := $(PREFIX)/bin
 
 .DEFAULT_GOAL := build
-.PHONY: build install uninstall run test test-race cover vet fmt fmt-check tidy check clean version release-check help
+.PHONY: build install uninstall run test cover vet fmt fmt-check tidy check clean version release-check help
 
 build: ## Build the Rust binary into ./leo
 	LEO_VERSION="$(VERSION)" $(CARGO) build --release --locked
@@ -23,12 +23,8 @@ uninstall: ## Remove leo from $(BINDIR)
 run: ## Run leo, e.g. make run ARGS="kv"
 	LEO_VERSION="$(VERSION)" $(CARGO) run --locked -- $(ARGS)
 
-test: ## Run Rust tests and Go/Rust CLI compatibility checks
+test: ## Run Rust tests and recorded CLI compatibility checks
 	$(CARGO) test --locked
-	cd tests/reference && go test ./...
-
-test-race: test ## Also run the reference's race checks
-	cd tests/reference && go test -race ./...
 
 cover: ## Run Rust coverage (requires cargo-llvm-cov)
 	$(CARGO) llvm-cov --locked

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Opt-in macOS clipboard parity test. Restores every original item/type."""
+"""Opt-in macOS clipboard checks. Restores every original item/type."""
 import argparse
 import base64
 import hashlib
@@ -111,7 +111,7 @@ def main():
                 for binary, result in zip(binaries, results):
                     summary = [[{k:hashlib.sha256(base64.b64decode(v)).hexdigest()[:12] for k,v in item.items()} for item in group] for group in result]
                     print(binary.name, "test pasteboard type/hash summary:", summary)
-                raise AssertionError("Go and Rust pasteboard items differ")
+                raise AssertionError("Tested binaries produced different pasteboard items")
         finally:
             restored = jxa(RESTORE, dict(os.environ, LEO_CLIP_SNAPSHOT=str(backup)))
             assert restored == "restored"

@@ -6,6 +6,8 @@ mod json;
 mod query;
 mod scaffold;
 mod store;
+#[cfg(test)]
+mod tests;
 
 type Result<T> = std::result::Result<T, String>;
 

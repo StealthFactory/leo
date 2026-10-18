@@ -8,4 +8,4 @@ They are exercised against the Go implementation by
 `tests/parity.py`. Keep these changes when updating jaq-json.
 
 Only the library target is vendored; upstream example and test targets are
-omitted. Leo verifies these changes through its Go/Rust compatibility suite.
+omitted. Leo verifies these changes through its recorded CLI compatibility suite.

@@ -4,4 +4,4 @@ as existing native diagnostics. This lets the JSON adapter preserve gojq's
 error messages while distinguishing them from a user's `error("message")`.
 
 Only the library target is vendored; upstream example and test targets are
-omitted. Leo verifies these changes through its Go/Rust compatibility suite.
+omitted. Leo verifies these changes through its recorded CLI compatibility suite.
