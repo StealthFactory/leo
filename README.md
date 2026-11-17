@@ -271,9 +271,9 @@ A secret prints its real value, so scripts can use it.
 
 #### Listing everything: `leo kv`
 
-Print every key and value, sorted by key. Each line contains the key, a tab,
-and the full value as compact JSON. Strings stay quoted. An empty or not-yet-created
-store produces no output.
+Print every key and value, sorted by key. Values use compact JSON and strings
+stay quoted. The terminal aligns the key and value columns. Redirected or piped
+output uses tab-separated pairs. An empty or not-yet-created store produces no output.
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
@@ -288,13 +288,13 @@ leo kv --query 'select(type == "object")'       # only object values
 The query receives one stored value at a time, not the entire store. A query
 that produces multiple results prints the key on each line. Queries that produce
 no results omit that key. Invalid queries or runtime query errors fail the
-command. Secrets always print as one `key<TAB>SECRET` line; queries don't run
-on them.
+command. Secrets always print as one line with `SECRET` in the value column.
+Queries don't run on them.
 
 #### Searching: `leo kv -s <text>`
 
 Find keys by typing part of them. Search ignores case and prints the best
-matches first, one `key<TAB>preview` line each. The preview is the value as
+matches first, with the same column format as listing. The preview is the value as
 compact JSON, shortened to 80 bytes, including the trailing `...`. Leo ranks
 matches in this order:
 

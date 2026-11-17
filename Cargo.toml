@@ -14,6 +14,7 @@ serde_json = { version = "1", features = ["raw_value", "arbitrary_precision"] }
 toml = "1.1.8"
 libc = "0.2"
 tempfile = "3"
+unicode-width = "0.1"
 
 [profile.release]
 strip = true
