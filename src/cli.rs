@@ -10,8 +10,9 @@ use crate::{
 use std::{
     collections::{BTreeMap, HashSet},
     fs,
-    io::{self, BufRead, Write},
+    io::{self, BufRead, IsTerminal, Write},
 };
+use unicode_width::UnicodeWidthStr;
 
 pub fn out(s: impl AsRef<[u8]>) {
     console_write(&mut io::stdout().lock(), s.as_ref());
@@ -533,18 +534,22 @@ fn run_store(cfg: &Config, f: &Flags) -> Result<()> {
             } else {
                 st.keys()
             };
+            let key_width = io::stdout()
+                .is_terminal()
+                .then(|| keys.iter().map(|key| key.width()).max().unwrap_or(0));
             for k in keys {
+                let prefix = store_key_prefix(&k, key_width);
                 if st.secret(&k) {
-                    line(format!("{k}\tSECRET"));
+                    line(format!("{prefix}SECRET"));
                     continue;
                 }
                 let v = st.get(&k).unwrap();
                 if !f.text("query").is_empty() {
                     for r in query::run(v, f.text("query"))? {
-                        line(format!("{k}\t{}", json::compact(&r)));
+                        line(format!("{prefix}{}", json::compact(&r)));
                     }
                 } else {
-                    out(format!("{k}\t"));
+                    out(prefix);
                     if mode == Search {
                         out(json::preview(v));
                     } else {
@@ -584,6 +589,16 @@ fn run_store(cfg: &Config, f: &Flags) -> Result<()> {
             line(format!("deleted {}", f.args[0]));
             Ok(())
         }
+    }
+}
+
+fn store_key_prefix(key: &str, key_width: Option<usize>) -> String {
+    match key_width {
+        Some(width) => {
+            let padding = width - key.width() + 2;
+            format!("{key}{:padding$}", "")
+        }
+        None => format!("{key}\t"),
     }
 }
 
@@ -760,4 +775,22 @@ fn setup(cfg: &Config) -> Result<()> {
     )?;
     line(format!("wrote {}", cfg.config_path));
     Ok(())
+}
+
+#[cfg(test)]
+mod store_output_tests {
+    use super::store_key_prefix;
+
+    #[test]
+    fn pads_terminal_results_by_display_width() {
+        assert_eq!(store_key_prefix("a", Some(5)), "a      ");
+        assert_eq!(store_key_prefix("界", Some(5)), "界     ");
+        assert_eq!(store_key_prefix("long!", Some(5)), "long!  ");
+    }
+
+    #[test]
+    fn retains_tab_delimiters_for_redirected_output() {
+        assert_eq!(store_key_prefix("a", None), "a\t");
+        assert_eq!(store_key_prefix("long key", None), "long key\t");
+    }
 }
